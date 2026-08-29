@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "ai_bridge",
+  "version": "${version}",
+  "name": "AI Bridge",
+  "description": "Exposes a local HTTP API for AI to control Minecraft.",
+  "authors": [
+    "AI-Minecraft-Launcher"
+  ],
+  "license": "GPL-3.0",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "com.aimc.ai_bridge.AiBridgeMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.7",
+    "minecraft": "~1.20.1",
+    "fabric-api": "*",
+    "java": ">=17"
+  }
+}
