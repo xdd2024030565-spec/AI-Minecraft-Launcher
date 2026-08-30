@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.AI_Minecraft_Launcher" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/ai_primary</item>
+        <item name="colorPrimaryDark">@color/ai_primary_dark</item>
+        <item name="colorSecondary">@color/ai_secondary</item>
+        <item name="android:statusBarColor">@color/ai_primary_dark</item>
+        <item name="android:navigationBarColor">@color/ai_background</item>
+    </style>
+
+    <style name="Theme.AI_Minecraft_Launcher.Light" parent="Theme.MaterialComponents.DayNight.LightActionBar">
+        <item name="colorPrimary">@color/ai_primary</item>
+        <item name="colorPrimaryDark">@color/ai_primary_dark</item>
+        <item name="colorSecondary">@color/ai_secondary</item>
+        <item name="android:statusBarColor">@color/ai_primary_dark</item>
+        <item name="android:navigationBarColor">@color/ai_background</item>
+    </style>
+
+</resources>
