@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Widget.AI_Minecraft_Launcher.MaterialButton" parent="Widget.MaterialComponents.Button.TextButtonIcon">
+        <item name="iconTint">@color/ai_primary</item>
+        <item name="android:textColor">@color/ai_primary</item>
+    </style>
+
+    <style name="Widget.AI_Minecraft_Launcher.MaterialButton.Filled" parent="Widget.MaterialComponents.Button.FilledButton">
+        <item name="backgroundTint">@color/ai_primary</item>
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+
+    <style name="Widget.AI_Minecraft_Launcher.MaterialButton.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/ai_primary</item>
+        <item name="android:textColor">@color/ai_primary</item>
+    </style>
+
+    <style name="Widget.AI_Minecraft_Launcher.CardView" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">@dimen/card_cornerRadius</item>
+        <item name="cardElevation">@dimen/card_elevation</item>
+    </style>
+
+</resources>
