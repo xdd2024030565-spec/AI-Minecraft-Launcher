@@ -1,13 +1,20 @@
 package com.aimc.controller;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import okhttp3.*;
-import retrofit2.*;
+import okhttp3.OkHttpClient;
+import retrofit2.Call;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.Map;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.Query;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 游戏 API 客户端
@@ -16,7 +23,6 @@ import java.util.List;
  */
 public class GameApiClient {
 
-    private final Retrofit retrofit;
     private final GameApi api;
     private final Gson gson = new Gson();
     private final int port;
@@ -31,7 +37,7 @@ public class GameApiClient {
             .retryOnConnectionFailure(true)
             .build();
 
-        retrofit = new Retrofit.Builder()
+        Retrofit retrofit = new Retrofit.Builder()
             .baseUrl("http://127.0.0.1:" + port + "/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
@@ -51,13 +57,14 @@ public class GameApiClient {
         Call<BlocksResponse> getBlocks(@Query("radius") int radius);
 
         @POST("api/action")
-        CallActionResult postAction(@Body ActionRequest action);
+        Call<ActionResult> postAction(@Body ActionRequest action);
 
         @POST("api/chat")
-        CallActionResult sendChat(@Body ChatRequest request);
+        Call<ActionResult> sendChat(@Body ChatRequest request);
     }
 
-    // 响应数据类
+    // ==================== 响应数据类 ====================
+
     public static class GameStateResponse {
         public boolean connected;
         public List<Double> position;
@@ -122,19 +129,20 @@ public class GameApiClient {
 
     public static class ChatRequest {
         public String message;
+        public ChatRequest(String message) { this.message = message; }
     }
 
     public static class ActionRequest {
         public String action;
         public Map<String, Object> params;
-
         public ActionRequest(String action, Map<String, Object> params) {
             this.action = action;
-            this.params = params != null ? params : new java.util.HashMap<>();
+            this.params = params != null ? params : new HashMap<>();
         }
     }
 
-    // 同步方法
+    // ==================== 同步方法 ====================
+
     public GameStateResponse getGameState() throws Exception {
         Response<GameStateResponse> resp = api.getState().execute();
         if (!resp.isSuccessful()) throw new Exception("HTTP " + resp.code());
@@ -154,13 +162,13 @@ public class GameApiClient {
     }
 
     public ActionResult executeAction(String action, Map<String, Object> params) throws Exception {
-        Response ActionResult resp = api.postAction(new ActionRequest(action, params)).execute();
+        Response<ActionResult> resp = api.postAction(new ActionRequest(action, params)).execute();
         if (!resp.isSuccessful()) throw new Exception("HTTP " + resp.code());
         return resp.body();
     }
 
     public ActionResult sendChat(String message) throws Exception {
-        Response ActionResult resp = api.sendChat(new ChatRequest(message)).execute();
+        Response<ActionResult> resp = api.sendChat(new ChatRequest(message)).execute();
         if (!resp.isSuccessful()) throw new Exception("HTTP " + resp.code());
         return resp.body();
     }
