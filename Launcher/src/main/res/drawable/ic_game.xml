@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- 游戏手柄图标 -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M6,8 L18,8 L18,16 L6,16 Z"/>
+    
+    <path
+        android:fillColor="#388E3C"
+        android:pathData="M4,10 L6,10 L6,14 L4,14 Z M18,10 L20,10 L20,14 L18,14 Z"/>
+    
+    <!-- 左摇杆 -->
+    <circle
+        android:fillColor="#FFFFFF"
+        android:cx="9"
+        android:cy="12"
+        android:r="1.5"/>
+    
+    <!-- 右摇杆 -->
+    <circle
+        android:fillColor="#FFFFFF"
+        android:cx="15"
+        android:cy="12"
+        android:r="1.5"/>
+    
+    <!-- A/B 按钮 -->
+    <circle
+        android:fillColor="#FFFFFF"
+        android:cx="16"
+        android:cy="10"
+        android:r="1"/>
+    
+    <circle
+        android:fillColor="#FFFFFF"
+        android:cx="16"
+        android:cy="14"
+        android:r="1"/>
+
+</vector>
