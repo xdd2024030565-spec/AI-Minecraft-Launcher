@@ -2,14 +2,22 @@ package com.aimc.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import okhttp3.*;
-import retrofit2.*;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import retrofit2.Call;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-import java.util.concurrent.TimeUnit;
+import retrofit2.http.Body;
+import retrofit2.http.POST;
+
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * LLM 客户端
@@ -19,7 +27,6 @@ import java.util.regex.Matcher;
  */
 public class LlmClient {
 
-    private final Retrofit retrofit;
     private final LlmApi api;
     private final Gson gson = new Gson();
     private final String apiKey;
@@ -48,7 +55,7 @@ public class LlmClient {
             })
             .build();
 
-        retrofit = new Retrofit.Builder()
+        Retrofit retrofit = new Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
@@ -79,7 +86,8 @@ public class LlmClient {
         public double temperature;
         public Integer max_tokens;
 
-        public ChatRequest(String model, List<Message> messages, double temperature, Integer max_tokens) {
+        public ChatRequest(String model, List<Message> messages,
+                           double temperature, Integer max_tokens) {
             this.model = model;
             this.messages = messages;
             this.temperature = temperature;
@@ -102,12 +110,12 @@ public class LlmClient {
      * 向 LLM 发送对话请求，返回文本回复
      */
     public String chat(String systemPrompt, String userPrompt) throws Exception {
-        ChatRequest request = new ChatRequest(
-            model,
-            List.of(new Message("system", systemPrompt), new Message("user", userPrompt)),
-            0.7,
-            2000
-        );
+        List<Message> messages = new ArrayList<>();
+        messages.add(new Message("system", systemPrompt));
+        messages.add(new Message("user", userPrompt));
+
+        ChatRequest request = new ChatRequest(model, messages, 0.7, 2000);
+
         Response<ChatResponse> resp = api.chatCompletions(request).execute();
         if (!resp.isSuccessful()) {
             throw new Exception("LLM request failed: " + resp.code());
@@ -125,6 +133,7 @@ public class LlmClient {
      * 要求 LLM 返回 JSON 数组格式的动作。
      * 返回解析后的 Map 列表，每个 Map 包含 action 和参数。
      */
+    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getActions(String systemPrompt, String userPrompt) throws Exception {
         String response = chat(systemPrompt, userPrompt);
         String json = extractJsonArray(response);
@@ -133,7 +142,9 @@ public class LlmClient {
         }
 
         try {
-            return gson.fromJson(json, new TypeToken<List<Map<String, Object>>>(){}.getType());
+            List<Map<String, Object>> result = gson.fromJson(json,
+                new TypeToken<List<Map<String, Object>>>(){}.getType());
+            return result != null ? result : new ArrayList<>();
         } catch (Exception e) {
             throw new Exception("Failed to parse JSON actions: " + e.getMessage(), e);
         }
