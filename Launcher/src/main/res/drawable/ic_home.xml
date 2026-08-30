@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- 房子图标 -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M10,20 L10,14 L14,14 L14,20 Z"/>
+    
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M4,12 L12,8 L20,12 L20,20 L4,20 Z"/>
+    
+    <path
+        android:fillColor="#E65100"
+        android:pathData="M12,8 L12,14 L14,14 L14,12 Z"/>
+
+</vector>
