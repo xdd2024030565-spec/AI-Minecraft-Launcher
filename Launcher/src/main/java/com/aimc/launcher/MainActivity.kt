@@ -1,95 +1,89 @@
-package com.aimc.launcher;
+package com.aimc.launcher
 
-import android.content.Intent;
-import android.os.Bundle;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Switch;
-import android.widget.Toast;
-import androidx.appcompat.app.AppCompatActivity;
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 
 /**
- * AI Minecraft Launcher 主界面
+ * AI Minecraft Launcher 主 Activity
  *
  * 提供以下功能：
- * 1. 配置 LLM API Key 和任务
+ * 1. 启动 Minecraft 游戏 (通过 FCL)
  * 2. 启动/停止 AI 控制器
  * 3. 查看游戏状态
  */
-public class MainActivity extends AppCompatActivity {
+class MainActivity : AppCompatActivity() {
 
-    private EditText etApiKey;
-    private EditText etTask;
-    private EditText etModel;
-    private EditText etPort;
-    private Switch switchAutoStart;
-    private Button btnStartAi;
-    private Button btnStopAi;
-    private Button btnOpenSettings;
-    private boolean isAiRunning = false;
+    private lateinit var btnStartMinecraft: Button
+    private lateinit var btnStartAi: Button
+    private lateinit var btnStopAi: Button
+    private var isAiRunning = false
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
-        initViews();
-        loadConfig();
+        initViews()
 
-        btnStartAi.setOnClickListener(v -> {
-            saveConfig();
-            String task = etTask.getText().toString().isEmpty()
-                ? "Explore the world, mine resources, and survive."
-                : etTask.getText().toString();
+        // 启动 Minecraft 按钮
+        btnStartMinecraft.setOnClickListener {
+            startMinecraft()
+        }
 
-            Intent intent = new Intent(this, AiControllerService.class);
-            intent.setAction(AiControllerService.ACTION_START);
-            intent.putExtra(AiControllerService.EXTRA_TASK, task);
-            startService(intent);
+        // 启动 AI 按钮
+        btnStartAi.setOnClickListener {
+            startAiController()
+        }
 
-            isAiRunning = true;
-            btnStartAi.setEnabled(false);
-            btnStopAi.setEnabled(true);
-            Toast.makeText(this, "AI started", Toast.LENGTH_SHORT).show();
-        });
-
-        btnStopAi.setOnClickListener(v -> {
-            Intent intent = new Intent(this, AiControllerService.class);
-            intent.setAction(AiControllerService.ACTION_STOP);
-            stopService(intent);
-
-            isAiRunning = false;
-            btnStartAi.setEnabled(true);
-            btnStopAi.setEnabled(false);
-            Toast.makeText(this, "AI stopped", Toast.LENGTH_SHORT).show();
-        });
+        // 停止 AI 按钮
+        btnStopAi.setOnClickListener {
+            stopAiController()
+        }
     }
 
-    private void initViews() {
-        etApiKey = findViewById(R.id.et_api_key);
-        etTask = findViewById(R.id.et_task);
-        etModel = findViewById(R.id.et_model);
-        etPort = findViewById(R.id.et_port);
-        switchAutoStart = findViewById(R.id.switch_auto_start);
-        btnStartAi = findViewById(R.id.btn_start_ai);
-        btnStopAi = findViewById(R.id.btn_stop_ai);
-        btnOpenSettings = findViewById(R.id.btn_open_settings);
+    private fun initViews() {
+        btnStartMinecraft = findViewById(R.id.btn_start_minecraft)
+        btnStartAi = findViewById(R.id.btn_start_ai)
+        btnStopAi = findViewById(R.id.btn_stop_ai)
     }
 
-    private void loadConfig() {
-        android.contentSharedPreferences prefs =
-            getSharedPreferences("ai_config", MODE_PRIVATE);
-        etApiKey.setText(prefs.getString("openai_api_key", "") ?: "");
-        etTask.setText(prefs.getString("task",
-            "Explore the world, mine resources, and survive.") ?: "");
-        etModel.setText(prefs.getString("llm_model", "gpt-4o-mini") ?: "");
-        etPort.setText(String.valueOf(prefs.getInt("bridge_port", 25580)));
+    private fun startMinecraft() {
+        Toast.makeText(this, "正在启动 Minecraft...", Toast.LENGTH_SHORT).show()
+
+        // 启动 FCL 的主 Activity
+        try {
+            val intent = Intent(this, Class.forName("com.tungsten.fcl.activity.MainActivity"))
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "无法启动 Minecraft: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
+        }
     }
 
-    private void saveConfig() {
-        android.contentSharedPreferences.Editor editor =
-            getSharedPreferences("ai_config", MODE_PRIVATE).edit();
-        editor.putBoolean("ai_enabled", true);
-        editor.apply();
+    private fun startAiController() {
+        val intent = Intent(this, AiControllerService::class.java)
+        startService(intent)
+        Toast.makeText(this, "AI 控制器已启动", Toast.LENGTH_SHORT).show()
+        btnStartAi.isEnabled = false
+        btnStopAi.isEnabled = true
+        isAiRunning = true
+    }
+
+    private fun stopAiController() {
+        val intent = Intent(this, AiControllerService::class.java)
+        stopService(intent)
+        Toast.makeText(this, "AI 控制器已停止", Toast.LENGTH_SHORT).show()
+        btnStartAi.isEnabled = true
+        btnStopAi.isEnabled = false
+        isAiRunning = false
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isAiRunning) {
+            stopAiController()
+        }
     }
 }
