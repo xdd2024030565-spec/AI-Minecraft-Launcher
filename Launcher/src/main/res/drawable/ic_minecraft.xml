@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- Minecraft 草地方块 -->
+    <!-- 顶面 -->
+    <path
+        android:fillColor="#7CBD3B"
+        android:pathData="M4,4 L20,4 L16,8 L8,8 Z"/>
+    
+    <!-- 前面 -->
+    <path
+        android:fillColor="#5A8C2A"
+        android:pathData="M4,4 L4,20 L8,20 L8,8 Z"/>
+    
+    <!-- 右面 -->
+    <path
+        android:fillColor="#4A7023"
+        android:pathData="M20,4 L20,20 L16,20 L16,8 Z"/>
+    
+    <!-- 草纹理 -->
+    <path
+        android:strokeColor="#3D5A1F"
+        android:strokeWidth="1"
+        android:fillColor="transparent"
+        android:pathData="M8,8 L12,8 M12,8 L12,12 M16,8 L12,8 M8,12 L12,12 M12,12 L16,12"/>
+    
+    <!-- 泥土 -->
+    <path
+        android:fillColor="#8D6E63"
+        android:pathData="M8,12 L16,12 L16,20 L8,20 Z"/>
+    
+    <!-- 泥土纹理 -->
+    <path
+        android:strokeColor="#6D4F43"
+        android:strokeWidth="0.5"
+        android:fillColor="transparent"
+        android:pathData="M8,16 L16,16 M12,12 L12,20"/>
+
+</vector>
