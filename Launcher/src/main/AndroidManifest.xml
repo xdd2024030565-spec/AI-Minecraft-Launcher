@@ -1,36 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.aimc.launcher">
+    package="com.aimc.launcher"
+    android:versionCode="1"
+    android:versionName="1.0.0">
 
-    <!-- 网络权限 -->
+    <!-- 权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
-    <!-- 前台服务权限 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    
-    <!-- 存储权限 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32"
-        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
-        android:name=".AiMCLauncherApp"
+        android:name=".FCLApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
+        android:icon="@drawable/ic_launcher"
         android:theme="@style/Theme.AI_Minecraft_Launcher"
-        android:usesCleartextTraffic="true">
-        
-        <!-- 主 Activity -->
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <!-- AI Minecraft Launcher 主 Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="portrait">
             <intent-filter>
@@ -38,21 +31,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
-        <!-- 设置 Activity -->
+
+        <!-- FCL 主 Activity -->
         <activity
-            android:name=".SettingsActivity"
+            android:name="com.tungsten.fcl.activity.MainActivity"
             android:exported="false"
-            android:label="设置"
-            android:parentActivityName=".MainActivity"/>
-            
+            android:label="Minecraft Launcher"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="portrait" />
+
         <!-- AI 控制器服务 -->
         <service
             android:name=".service.AiControllerService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="dataSync"/>
-            
+            android:foregroundServiceType="dataSync" />
+
     </application>
 
 </manifest>
