@@ -1,7 +1,7 @@
 package com.aimc.controller;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map.Entry;
 
 /**
  * AI 决策引擎
@@ -48,7 +48,7 @@ public class DecisionEngine {
             // 1. 收集游戏状态
             GameApiClient.GameStateResponse gameState = gameApi.getGameState();
             if (!gameState.connected) {
-                return new DecisionResult.Skip("Player not connected to world");
+                return new Skip("Player not connected to world");
             }
 
             GameApiClient.InventoryResponse inventory = null;
@@ -64,7 +64,7 @@ public class DecisionEngine {
             List<Map<String, Object>> actions = llmClient.getActions(systemPrompt, prompt);
 
             if (actions.isEmpty()) {
-                return new DecisionResult.Skip("LLM returned no actions");
+                return new Skip("LLM returned no actions");
             }
 
             // 4. 执行动作 (限制每周期最多执行 MAX_ACTIONS_PER_CYCLE)
@@ -84,11 +84,11 @@ public class DecisionEngine {
                 }
             }
 
-            return new DecisionResult.Success(cycleCount, executed, prompt.length());
+            return new Success(cycleCount, executed, prompt.length());
 
         } catch (Exception e) {
             lastError = e.getMessage();
-            return new DecisionResult.Error(e.getMessage() != null ? e.getMessage() : "Unknown error");
+            return new Error(e.getMessage() != null ? e.getMessage() : "Unknown error");
         }
     }
 
@@ -141,7 +141,7 @@ public class DecisionEngine {
             sb.append("=== INVENTORY ===\n");
             List<GameApiClient.ItemInfo> items = new ArrayList<>();
             for (GameApiClient.ItemInfo item : inventory.mainInventory) {
-                if (item != null && !item.name.equals("air") && item.count > 0) {
+                if (item != null && !"air".equals(item.name) && item.count > 0) {
                     items.add(item);
                 }
             }
@@ -162,9 +162,9 @@ public class DecisionEngine {
         // 附近方块
         if (blocks != null && blocks.blockSummary != null) {
             sb.append("=== NEARBY BLOCKS (radius ").append(blocks.scanRadius).append(") ===\n");
-            Set<Map.Entry<String, Integer>> entries = blocks.blockSummary.entrySet();
+            Set<Entry<String, Integer>> entries = blocks.blockSummary.entrySet();
             int count = 0;
-            for (Map.Entry<String, Integer> entry : entries) {
+            for (Entry<String, Integer> entry : entries) {
                 if (count++ >= 10) break;
                 sb.append("  ").append(entry.getValue()).append(" x ").append(entry.getKey()).append("\n");
             }
@@ -198,7 +198,12 @@ public class DecisionEngine {
         return sb.toString();
     }
 
-    // ==================== 决策结果 ====================
+    // ==================== 决策结果类 (非静态内部类，可直接 instanceof) ====================
+
+    public static abstract class DecisionResult {
+        @Override
+        public abstract String toString();
+    }
 
     public static class Success extends DecisionResult {
         public final int cycleNumber;
