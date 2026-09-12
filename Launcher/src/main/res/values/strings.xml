@@ -1,20 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AI Minecraft Launcher</string>
-    <string name="action_start_ai">启动 AI</string>
-    <string name="action_stop_ai">停止 AI</string>
-    <string name="action_start_minecraft">启动 Minecraft</string>
-    <string name="ai_started">AI 控制器已启动</string>
-    <string name="ai_stopped">AI 控制器已停止</string>
-    <string name="ai_not_running">AI 未运行</string>
-    <string name="ai_config_api_key">OpenAI API Key</string>
-    <string name="ai_config_task">AI 任务</string>
-    <string name="ai_config_model">LLM 模型</string>
-    <string name="ai_config_port">Bridge 端口</string>
-    <string name="status_waiting">等待游戏启动...</string>
-    <string name="status_connected">已连接</string>
-    <string name="status_disconnected">未连接</string>
-    <string name="default_task">Explore the world, mine resources, and survive.</string>
-    <string name="default_model">gpt-4o-mini</string>
-    <string name="default_port">25580</string>
+    <string name="start_minecraft">启动 Minecraft</string>
+    <string name="start_ai">启动 AI 控制器</string>
+    <string name="stop_ai">停止 AI 控制器</string>
+    <string name="ai_status_running">AI 控制器运行中</string>
+    <string name="ai_status_stopped">AI 控制器已停止</string>
+    <string name="notification_channel_name">AI 控制器服务</string>
+    <string name="notification_channel_desc">AI Minecraft 控制器后台服务</string>
+    <string name="notification_title">AI 控制器运行中</string>
+    <string name="notification_text">正在控制 Minecraft 角色</string>
+    <string name="title_fcl">Fold Craft Launcher</string>
 </resources>

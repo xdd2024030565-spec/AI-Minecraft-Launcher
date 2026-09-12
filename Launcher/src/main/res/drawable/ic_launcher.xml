@@ -1,58 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
     <!-- 背景 -->
-    <group
-        android:scaleX="0.85"
-        android:scaleY="0.85"
-        android:translateX="8.1"
-        android:translateY="8.1">
-        
-        <!-- 草地底色 -->
-        <path
-            android:fillColor="#4CAF50"
-            android:pathData="M10,80 L98,80 L98,98 L10,98 Z"/>
-        
-        <!-- 泥土 -->
-        <path
-            android:fillColor="#8D6E63"
-            android:pathData="M10,80 L98,80 L98,98 L10,98 Z"/>
-        
-        <!-- AI 图标 (大脑/机器人) -->
-        <circle
-            android:fillColor="#2196F3"
-            android:cx="54"
-            android:cy="40"
-            android:r="20"/>
-        
-        <!-- AI 脑部纹理 -->
-        <path
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="2"
-            android:fillColor="transparent"
-            android:pathData="M44,40 L54,30 L64,40 M54,30 L54,50 M44,50 L64,50"/>
-        
-        <!-- 玩家角色 -->
-        <circle
-            android:fillColor="#FF9800"
-            android:cx="54"
-            android:cy="70"
-            android:r="8"/>
-        
-        <!-- 玩家身体 -->
-        <path
-            android:fillColor="#FF9800"
-            android:pathData="M54,62 L54,78 M48,70 L60,70"/>
-        
-    </group>
-    
-    <!-- 外圈 -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M0,0h48v48h-48z" />
+    <!-- 游戏手柄 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M0,0 L108,0 L108,108 L0,108 Z"/>
-        
+        android:pathData="M24,12 C17,12 12,17 12,24 L12,30 C12,34 15,36 17,36 C19,36 20,34 22,32 L26,32 C28,34 29,36 31,36 C33,36 36,34 36,30 L36,24 C36,17 31,12 24,12 Z M18,27 C16.9,27 16,26.1 16,25 C16,23.9 16.9,23 18,23 C19.1,23 20,23.9 20,25 C20,26.1 19.1,27 18,27 Z M30,27 C28.9,27 28,26.1 28,25 C28,23.9 28.9,23 30,23 C31.1,23 32,23.9 32,25 C32,26.1 31.1,27 30,27 Z" />
 </vector>
