@@ -10,9 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.aimc.controller.DecisionEngine
-import com.aimc.controller.GameApiClient
-import com.aimc.controller.LlmClient
+import com.aimc.controller.*
 import com.aimc.launcher.AiConfig
 import com.aimc.launcher.MainActivity
 import com.aimc.launcher.R
@@ -21,8 +19,7 @@ import kotlinx.coroutines.*
 /**
  * AI 控制器前台服务
  *
- * 在后台运行 AI 决策循环，持续与游戏内的 AI Bridge HTTP API 通信。
- * 配置通过 AiConfig (SharedPreferences) 读取。
+ * 支持单智能体和多智能体协作模式。
  */
 class AiControllerService : Service() {
 
@@ -34,7 +31,9 @@ class AiControllerService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var decisionEngine: DecisionEngine? = null
+    private var agentManager: AiAgentManager? = null
     private var isRunning = false
+    private var agentMode = false
 
     override fun onCreate() {
         super.onCreate()
@@ -55,6 +54,9 @@ class AiControllerService : Service() {
     override fun onDestroy() {
         isRunning = false
         serviceScope.cancel()
+        if (agentMode && agentManager != null) {
+            agentManager?.shutdown()
+        }
         super.onDestroy()
     }
 
@@ -95,6 +97,7 @@ class AiControllerService : Service() {
                 val bridgePort = AiConfig.getBridgePort(this@AiControllerService)
                 val task = AiConfig.getTask(this@AiControllerService)
                 val cycleInterval = AiConfig.getCycleInterval(this@AiControllerService)
+                val agentModeEnabled = AiConfig.getAgentMode(this@AiControllerService)
 
                 if (apiKey.isEmpty()) {
                     updateNotification("错误: 未配置 API Key，请在设置中填写")
@@ -104,16 +107,27 @@ class AiControllerService : Service() {
 
                 val gameApi = GameApiClient(bridgePort)
                 val llmClient = LlmClient(apiKey, model, baseUrl)
-                decisionEngine = DecisionEngine(gameApi, llmClient)
-                decisionEngine?.setCurrentTask(task)
 
-                // 阶段 5: 视觉模式 + 记忆系统
-                val visualMode = AiConfig.getVisualMode(this@AiControllerService)
-                val memoryEnabled = AiConfig.getMemoryEnabled(this@AiControllerService)
-                decisionEngine?.setVisualMode(visualMode)
-                decisionEngine?.setMemoryEnabled(memoryEnabled)
+                if (agentModeEnabled) {
+                    // 多智能体模式
+                    agentManager = AiAgentManager()
+                    agentMode = true
 
-                Log.i(TAG, "AI Controller: port=$bridgePort, model=$model, visual=$visualMode, memory=$memoryEnabled")
+                    // 添加预设智能体
+                    for (role in AiAgentManager.PresetRoles.getPresetNames()) {
+                        agentManager?.addPresetAgent(role, gameApi, llmClient)
+                    }
+
+                    Log.i(TAG, "Multi-agent mode: " + agentManager?.getAgentCount() + " agents")
+                    updateNotification("多智能体模式: ${agentManager?.getAgentCount()} 个智能体")
+                } else {
+                    // 单智能体模式
+                    decisionEngine = DecisionEngine(gameApi, llmClient)
+                    decisionEngine?.setCurrentTask(task)
+                    agentMode = false
+                    Log.i(TAG, "Single-agent mode")
+                    updateNotification("AI 控制器已启动")
+                }
 
                 updateNotification("正在等待 AI Bridge 连接...")
                 waitForBridge(gameApi)
@@ -121,17 +135,25 @@ class AiControllerService : Service() {
 
                 while (isActive && isRunning) {
                     try {
-                        val result = decisionEngine?.runDecisionCycle()
-                        when (result) {
-                            is DecisionEngine.Success -> {
-                                Log.i(TAG, "Cycle ${result.cycleNumber}: ${result.actionsExecuted}")
-                                updateNotification("循环 #${result.cycleNumber} | 执行: ${result.actionsExecuted.joinToString(", ")}")
+                        if (agentMode && agentManager != null) {
+                            // 多智能体: 轮询运行
+                            val result = agentManager?.runNextTurn()
+                            Log.d(TAG, result ?: "No agents active")
+                        } else if (decisionEngine != null) {
+                            // 单智能体
+                            val result = decisionEngine?.runDecisionCycle()
+                            when (result) {
+                                is DecisionEngine.Success -> {
+                                    Log.i(TAG, "Cycle ${result.cycleNumber}: ${result.actionsExecuted}")
+                                }
+                                is DecisionEngine.Skip -> Log.d(TAG, "Skipped: ${result.reason}")
+                                is DecisionEngine.Error -> Log.e(TAG, "Error: ${result.message}")
+                                null -> {}
                             }
-                            is DecisionEngine.Skip -> Log.d(TAG, "Skipped: ${result.reason}")
-                            is DecisionEngine.Error -> { Log.e(TAG, "Error: ${result.message}"); updateNotification("错误: ${result.message}") }
-                            null -> {}
                         }
-                    } catch (e: Exception) { Log.e(TAG, "Decision cycle error", e) }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Decision cycle error", e)
+                    }
                     delay(cycleInterval)
                 }
             } catch (e: Exception) {
