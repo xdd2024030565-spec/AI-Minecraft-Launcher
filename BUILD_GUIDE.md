@@ -24,6 +24,15 @@
   - 上传APK文件到Release
   - 包含完整的功能说明
 
+## 🚨 重要修复说明
+
+### 已修复的问题
+- ✅ **弃用的actions版本**: 已更新到最新版本
+- ✅ **actions/upload-artifact**: 从v3更新到v4
+- ✅ **actions/cache**: 从v3更新到v4
+- ✅ **actions/github-script**: 从v6更新到v7
+- ✅ **actions/upload-release-asset**: 从v1更新到v2
+
 ## 📱 如何使用
 
 ### 方法1：通过GitHub网页界面
@@ -103,6 +112,7 @@
 - **Java版本**: JDK 17 (Temurin)
 - **Android SDK**: 34.0.0
 - **构建工具**: Gradle 8.2.0
+- **Actions版本**: 最新稳定版本
 
 ### 构建步骤
 1. **代码检出**: 获取最新源代码
@@ -131,11 +141,13 @@
 - **网络问题**: 检查GitHub Actions网络连接
 - **依赖问题**: Gradle依赖下载失败
 - **环境问题**: Android SDK配置错误
+- **Actions版本**: 已修复所有弃用版本问题
 
 ### 解决方案
 1. **重新运行**: 手动触发重新构建
 2. **查看日志**: 检查构建日志详情
 3. **清理缓存**: 删除.gradle重新构建
+4. **检查版本**: 确保使用最新Actions版本
 
 ## 🎉 下一步
 
@@ -155,7 +167,7 @@
 
 ---
 
-**🎯 构建完成！现在您可以享受自动化的APK构建和发布流程！**
+**🎯 构建系统已修复完成！现在可以正常构建和发布APK文件！**
 
 **📧 开发者**: xdd2024030565@gmail.com
 **🔗 项目**: https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher
