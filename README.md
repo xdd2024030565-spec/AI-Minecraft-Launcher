@@ -2,6 +2,20 @@
 
 > 一个基于 [FCL (Fold Craft Launcher)](https://github.com/FCL-Team/FoldCraftLauncher) 的 Android Minecraft: Java Edition 启动器，内置 **AI 接入功能**，让 AI 可以玩 Minecraft。
 
+## 🎉 构建完成 v1.0.0
+
+✨ **AI Minecraft Launcher v1.0.0 构建完成！**
+
+📥 **[下载 APK](https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher/releases/download/v1.0.0/AI-Minecraft-Launcher-v1.0.0.apk)**
+
+📋 **[构建日志](https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher/blob/main/BUILD_LOG_v1.0.0.txt)**
+
+📱 **[APK信息](https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher/blob/main/APK_DESCRIPTION_v1.0.0.md)**
+
+🎯 **[构建状态](https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher/blob/main/BUILD_COMPLETE_v1.0.0.md)**
+
+---
+
 ## ✨ 特性
 
 ### 启动器功能 (基于 FCL)
@@ -171,24 +185,35 @@ chmod +x release.sh
 ./release.sh
 ```
 
-详细构建说明请参考 [BUILD.md](BUILD.md)。
+详细构建说明请参考 [BUILD.md](BUILD.md) 和 [PUBLISHING.md](PUBLISHING.md)。
+
+## 📋 版本历史
+
+### v1.0.0 (2026-09-12)
+- ✅ 完整的AI Minecraft启动器功能
+- ✅ 多智能体协作系统
+- ✅ 视觉决策能力
+- ✅ 记忆系统
+- ✅ 用户友好的设置界面
+- ✅ 完整的HTTP API
+- ✅ APK签名和构建完成
+
+## 🆘 支持
+
+如遇到问题，请:
+1. 检查设置配置是否正确
+2. 确保网络连接正常
+3. 查看日志输出
+4. 提交Issue报告: [GitHub Issues](https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher/issues)
 
 ## 📄 许可证
 
-GPL-3.0 (与 FCL 保持一致)
-
-## 🙏 致谢
-
-- [FCL-Team/FoldCraftLauncher](https://github.com/FCL-Team/FoldCraftLauncher) — Fold Craft Launcher
-- [PrismarineJS/mineflayer](https://github.com/PrismarineJS/mineflayer) — Minecraft bot framework
-- [FCL-Team/EnchantNet](https://github.com/FCL-Team/EnchantNet) — Remote connection tool
-
-## 📞 支持
-
-- 📧 **Email**: xdd2024030565@gmail.com
-- 🐛 **Bug报告**: [GitHub Issues](https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher/issues)
-- 💬 **讨论**: [GitHub Discussions](https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher/discussions)
+本项目采用 [GPL-3.0](LICENSE) 许可证。
 
 ---
 
-**⭐ 如果这个项目对您有帮助，请给个星标！**
+**🎉 感谢使用AI Minecraft Launcher！**
+
+**📧 联系**: xdd2024030565@gmail.com  
+**🔗 项目**: https://github.com/xdd2024030565-spec/AI-Minecraft-Launcher  
+**⭐ Star**: 如果这个项目对您有帮助，请给我们一个Star!
