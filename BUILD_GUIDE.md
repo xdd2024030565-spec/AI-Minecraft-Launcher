@@ -11,7 +11,6 @@
   - 下载源代码
   - 设置Java 17环境
   - 设置Android SDK
-  - 自动下载gradle wrapper
   - 构建Debug和Release APK
   - 签名和对齐APK
   - 上传构建产物
@@ -28,8 +27,9 @@
 ## 🚨 重要修复说明
 
 ### 已修复的问题
-- ✅ **gradle wrapper缺失**: 添加了自动下载gradle wrapper的步骤
+- ✅ **gradle wrapper jar问题**: 采用方案B，直接提交gradle wrapper文件到仓库
 - ✅ **弃用的actions版本**: 已更新到最新版本
+  - `actions/checkout@v4` → `@v5`
   - `actions/setup-java@v4` → `@v5`
   - `android-actions/setup-android@v2` → `@v3`
   - `actions/upload-artifact@v3` → `@v4`
@@ -37,7 +37,7 @@
   - `actions/github-script@v6` → `@v7`
   - `actions/upload-release-asset@v1` → `@v2`
 - ✅ **Android SDK配置**: 移除了不支持的`sdk-version`参数
-- ✅ **Gradle Wrapper**: 添加了智能下载脚本，支持自动检测版本和备用下载方案
+- ✅ **gradle wrapper下载问题**: 移除了错误的下载步骤，直接使用仓库中的gradle wrapper
 
 ## 📱 如何使用
 
@@ -117,21 +117,20 @@
 - **操作系统**: Ubuntu 20.04 LTS
 - **Java版本**: JDK 17 (Temurin)
 - **Android SDK**: 最新版本（自动安装）
-- **Gradle**: 8.5（自动下载wrapper）
+- **Gradle**: 8.5（使用仓库中的gradle wrapper）
 - **Actions版本**: 最新稳定版本
 
 ### 构建步骤
 1. **代码检出**: 获取最新源代码
 2. **环境设置**: 配置Java和Android SDK
-3. **Gradle Wrapper**: 自动下载gradle-wrapper.jar
-4. **权限设置**: 给gradlew执行权限
-5. **依赖缓存**: 加速Gradle构建
-6. **Debug构建**: 构建测试版本
-7. **Release构建**: 构建发布版本
-8. **密钥生成**: 创建签名密钥
-9. **APK签名**: 对Release APK进行签名
-10. **APK对齐**: 优化APK性能
-11. **产物上传**: 上传构建文件
+3. **权限设置**: 给gradlew执行权限
+4. **依赖缓存**: 加速Gradle构建
+5. **Debug构建**: 构建测试版本
+6. **Release构建**: 构建发布版本
+7. **密钥生成**: 创建签名密钥
+8. **APK签名**: 对Release APK进行签名
+9. **APK对齐**: 优化APK性能
+10. **产物上传**: 上传构建文件
 
 ### 自动发布
 - **触发条件**: 构建成功且在main分支
@@ -141,14 +140,14 @@
 ## ⚠️ 注意事项
 
 ### 构建时间
-- **首次构建**: 5-10分钟（包含下载gradle wrapper）
+- **首次构建**: 5-10分钟
 - **后续构建**: 2-5分钟（有缓存）
 
 ### 失败原因
 - **网络问题**: 检查GitHub Actions网络连接
 - **依赖问题**: Gradle依赖下载失败
 - **环境问题**: Android SDK配置错误
-- **gradle wrapper**: 已修复，自动下载最新版本
+- **gradle wrapper**: 已修复，直接使用仓库中的文件
 
 ### 解决方案
 1. **重新运行**: 手动触发重新构建
