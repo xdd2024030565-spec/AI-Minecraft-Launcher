@@ -7,7 +7,7 @@ import java.util.Map.Entry;
  * AI 决策引擎
  *
  * 将游戏状态转换为 LLM Prompt，获取动作列表，并通过 GameApiClient 执行。
- * 支持视觉决策 (截图 + 多模态 LLM) 和记忆系统。
+ * 支持视觉模式 (截图+多模态LLM) 和记忆系统。
  */
 public class DecisionEngine {
 
@@ -21,9 +21,9 @@ public class DecisionEngine {
     private int cycleCount = 0;
     private String lastError = null;
 
-    // 阶段5: 视觉决策和记忆系统
-    private boolean useVision = false;
-    private final MemorySystem memory = new MemorySystem();
+    // 阶段 5: 视觉 + 记忆
+    private final MemoryStore memory = new MemoryStore();
+    private boolean visualMode = false;
 
     public DecisionEngine(GameApiClient gameApi, LlmClient llmClient) {
         this.gameApi = gameApi;
@@ -35,20 +35,18 @@ public class DecisionEngine {
     public int getCycleCount() { return cycleCount; }
     public String getLastError() { return lastError; }
 
-    // 视觉决策
-    public void setUseVision(boolean useVision) { this.useVision = useVision; }
-    public boolean isUseVision() { return useVision; }
-
-    // 记忆系统
-    public MemorySystem getMemory() { return memory; }
+    // 阶段 5: 视觉/记忆配置
+    public void setVisualMode(boolean enabled) { this.visualMode = enabled; }
+    public void setMemoryEnabled(boolean enabled) { memory.setEnabled(enabled); }
+    public MemoryStore getMemory() { return memory; }
 
     /**
      * 执行一次决策循环:
-     * 1. 收集游戏状态 (含截图 if vision)
+     * 1. 收集游戏状态 (+ 截图 if 视觉模式)
      * 2. 构建 Prompt (含记忆)
-     * 3. 调用 LLM 获取动作 (纯文本 or 视觉)
+     * 3. 调用 LLM 获取动作
      * 4. 执行动作
-     * 5. 记录到记忆
+     * 5. 存储记忆
      */
     public DecisionResult runDecisionCycle() {
         cycleCount++;
@@ -66,26 +64,26 @@ public class DecisionEngine {
             try { inventory = gameApi.getInventory(); } catch (Exception e) { /* ignore */ }
             try { blocks = gameApi.getNearbyBlocks(6); } catch (Exception e) { /* ignore */ }
 
-            // 视觉: 获取截图
+            // 视觉模式: 截图
             byte[] screenshot = null;
-            if (useVision) {
+            if (visualMode) {
                 try { screenshot = gameApi.getScreenshot(); } catch (Exception e) { /* ignore */ }
             }
 
             // 2. 构建 Prompt (含记忆)
             String prompt = buildPrompt(gameState, inventory, blocks);
+            String systemPrompt = buildSystemPrompt();
 
             // 3. 调用 LLM 获取动作
-            String systemPrompt = buildSystemPrompt();
             List<Map<String, Object>> actions;
-            if (useVision && screenshot != null && screenshot.length > 0) {
-                actions = llmClient.getActionsWithImage(systemPrompt, prompt, screenshot);
+            if (visualMode && screenshot != null && screenshot.length > 0) {
+                String base64Image = java.util.Base64.getEncoder().encodeToString(screenshot);
+                actions = llmClient.getActionsWithImage(systemPrompt, prompt, base64Image);
             } else {
                 actions = llmClient.getActions(systemPrompt, prompt);
             }
 
             if (actions.isEmpty()) {
-                memory.addShortTermEntry("Cycle " + cycleCount + ": no actions returned");
                 return new Skip("LLM returned no actions");
             }
 
@@ -106,18 +104,15 @@ public class DecisionEngine {
                 }
             }
 
-            // 5. 记录到记忆
-            memory.addShortTermEntry("Cycle " + cycleCount + ": " + String.join(", ", executed));
-
-            // 自动提取重要事实
-            if (gameState.health < 5) {
-                memory.addLongTermFact("Low health (" + gameState.health + "/20) at cycle " + cycleCount);
-            }
-            if (gameState.food < 5) {
-                memory.addLongTermFact("Low food (" + gameState.food + "/20) at cycle " + cycleCount);
-            }
-            if (gameState.dimension != null && !gameState.dimension.contains("overworld")) {
-                memory.addLongTermFact("In dimension: " + gameState.dimension + " at cycle " + cycleCount);
+            // 5. 存储记忆
+            if (memory.isEnabled() && !executed.isEmpty()) {
+                memory.addEntry("action", "Executed: " + String.join(", ", executed));
+                memory.addEntry("state", String.format(
+                    "HP=%.0f/20 Food=%d/20 Pos=[%.1f,%.1f,%.1f] %s",
+                    gameState.health, gameState.food,
+                    gameState.position.get(0), gameState.position.get(1), gameState.position.get(2),
+                    gameState.isDay ? "DAY" : "NIGHT"
+                ));
             }
 
             return new Success(cycleCount, executed, prompt.length());
@@ -142,7 +137,7 @@ public class DecisionEngine {
             "- attack: {}\n" +
             "- use: {}\n" +
             "- inventory_click: {slot: 0-35, button: left/right}\n" +
-            "- craft: {item: string}  (returns recipe info, then use inventory_click to place items)\n" +
+            "- craft: {item: string}  (returns recipe info, then use inventory_click)\n" +
             "- drop_item: {slot: 0-35}\n" +
             "- toggle_sprint: {}\n" +
             "- chat: {message: string}\n\n" +
@@ -151,13 +146,11 @@ public class DecisionEngine {
             "- Example: [{\"action\":\"move\",\"direction\":\"forward\",\"duration\":10}]\n" +
             "- Be efficient and goal-oriented.\n" +
             "- If the task requires crafting, first mine necessary resources.\n" +
-            "- If health < 5, consider searching for food or retreating.\n" +
-            "- If a screenshot is provided, analyze it to make better spatial decisions.\n" +
-            "- Use memory to avoid repeating failed actions and remember important locations.";
+            "- If health < 5, consider searching for food or retreating.";
     }
 
     /**
-     * 构建用户提示词 (包含当前游戏状态和记忆)
+     * 构建用户提示词 (包含当前游戏状态 + 记忆)
      */
     private String buildPrompt(GameApiClient.GameStateResponse gameState,
                                 GameApiClient.InventoryResponse inventory,
@@ -219,10 +212,11 @@ public class DecisionEngine {
             }
         }
 
-        // 阶段5: 记忆
-        String memoryText = memory.getMemoryText();
-        if (memoryText != null) {
-            sb.append(memoryText).append("\n");
+        // 记忆 (阶段 5)
+        if (memory.isEnabled() && memory.size() > 0) {
+            sb.append("=== RECENT MEMORY ===\n");
+            sb.append(memory.getSummary());
+            sb.append("\n");
         }
 
         String prompt = sb.toString();
