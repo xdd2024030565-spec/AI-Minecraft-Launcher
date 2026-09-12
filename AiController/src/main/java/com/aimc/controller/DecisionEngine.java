@@ -7,7 +7,7 @@ import java.util.Map.Entry;
  * AI 决策引擎
  *
  * 将游戏状态转换为 LLM Prompt，获取动作列表，并通过 GameApiClient 执行。
- * 支持多种任务模式（探索、收集、建造等）。
+ * 支持视觉决策 (截图 + 多模态 LLM) 和记忆系统。
  */
 public class DecisionEngine {
 
@@ -21,6 +21,10 @@ public class DecisionEngine {
     private int cycleCount = 0;
     private String lastError = null;
 
+    // 阶段5: 视觉决策和记忆系统
+    private boolean useVision = false;
+    private final MemorySystem memory = new MemorySystem();
+
     public DecisionEngine(GameApiClient gameApi, LlmClient llmClient) {
         this.gameApi = gameApi;
         this.llmClient = llmClient;
@@ -31,14 +35,20 @@ public class DecisionEngine {
     public int getCycleCount() { return cycleCount; }
     public String getLastError() { return lastError; }
 
+    // 视觉决策
+    public void setUseVision(boolean useVision) { this.useVision = useVision; }
+    public boolean isUseVision() { return useVision; }
+
+    // 记忆系统
+    public MemorySystem getMemory() { return memory; }
+
     /**
      * 执行一次决策循环:
-     * 1. 收集游戏状态
-     * 2. 构建 Prompt
-     * 3. 调用 LLM 获取动作
+     * 1. 收集游戏状态 (含截图 if vision)
+     * 2. 构建 Prompt (含记忆)
+     * 3. 调用 LLM 获取动作 (纯文本 or 视觉)
      * 4. 执行动作
-     *
-     * @return 执行结果
+     * 5. 记录到记忆
      */
     public DecisionResult runDecisionCycle() {
         cycleCount++;
@@ -56,18 +66,30 @@ public class DecisionEngine {
             try { inventory = gameApi.getInventory(); } catch (Exception e) { /* ignore */ }
             try { blocks = gameApi.getNearbyBlocks(6); } catch (Exception e) { /* ignore */ }
 
-            // 2. 构建 Prompt
+            // 视觉: 获取截图
+            byte[] screenshot = null;
+            if (useVision) {
+                try { screenshot = gameApi.getScreenshot(); } catch (Exception e) { /* ignore */ }
+            }
+
+            // 2. 构建 Prompt (含记忆)
             String prompt = buildPrompt(gameState, inventory, blocks);
 
             // 3. 调用 LLM 获取动作
             String systemPrompt = buildSystemPrompt();
-            List<Map<String, Object>> actions = llmClient.getActions(systemPrompt, prompt);
+            List<Map<String, Object>> actions;
+            if (useVision && screenshot != null && screenshot.length > 0) {
+                actions = llmClient.getActionsWithImage(systemPrompt, prompt, screenshot);
+            } else {
+                actions = llmClient.getActions(systemPrompt, prompt);
+            }
 
             if (actions.isEmpty()) {
+                memory.addShortTermEntry("Cycle " + cycleCount + ": no actions returned");
                 return new Skip("LLM returned no actions");
             }
 
-            // 4. 执行动作 (限制每周期最多执行 MAX_ACTIONS_PER_CYCLE)
+            // 4. 执行动作
             List<String> executed = new ArrayList<>();
             int limit = Math.min(actions.size(), MAX_ACTIONS_PER_CYCLE);
             for (int i = 0; i < limit; i++) {
@@ -82,6 +104,20 @@ public class DecisionEngine {
                     lastError = "Failed to execute " + actionName + ": " + e.getMessage();
                     System.err.println(lastError);
                 }
+            }
+
+            // 5. 记录到记忆
+            memory.addShortTermEntry("Cycle " + cycleCount + ": " + String.join(", ", executed));
+
+            // 自动提取重要事实
+            if (gameState.health < 5) {
+                memory.addLongTermFact("Low health (" + gameState.health + "/20) at cycle " + cycleCount);
+            }
+            if (gameState.food < 5) {
+                memory.addLongTermFact("Low food (" + gameState.food + "/20) at cycle " + cycleCount);
+            }
+            if (gameState.dimension != null && !gameState.dimension.contains("overworld")) {
+                memory.addLongTermFact("In dimension: " + gameState.dimension + " at cycle " + cycleCount);
             }
 
             return new Success(cycleCount, executed, prompt.length());
@@ -106,6 +142,7 @@ public class DecisionEngine {
             "- attack: {}\n" +
             "- use: {}\n" +
             "- inventory_click: {slot: 0-35, button: left/right}\n" +
+            "- craft: {item: string}  (returns recipe info, then use inventory_click to place items)\n" +
             "- drop_item: {slot: 0-35}\n" +
             "- toggle_sprint: {}\n" +
             "- chat: {message: string}\n\n" +
@@ -114,11 +151,13 @@ public class DecisionEngine {
             "- Example: [{\"action\":\"move\",\"direction\":\"forward\",\"duration\":10}]\n" +
             "- Be efficient and goal-oriented.\n" +
             "- If the task requires crafting, first mine necessary resources.\n" +
-            "- If health < 5, consider searching for food or retreating.";
+            "- If health < 5, consider searching for food or retreating.\n" +
+            "- If a screenshot is provided, analyze it to make better spatial decisions.\n" +
+            "- Use memory to avoid repeating failed actions and remember important locations.";
     }
 
     /**
-     * 构建用户提示词 (包含当前游戏状态)
+     * 构建用户提示词 (包含当前游戏状态和记忆)
      */
     private String buildPrompt(GameApiClient.GameStateResponse gameState,
                                 GameApiClient.InventoryResponse inventory,
@@ -180,6 +219,12 @@ public class DecisionEngine {
             }
         }
 
+        // 阶段5: 记忆
+        String memoryText = memory.getMemoryText();
+        if (memoryText != null) {
+            sb.append(memoryText).append("\n");
+        }
+
         String prompt = sb.toString();
         if (prompt.length() > MAX_PROMPT_LENGTH) {
             prompt = prompt.substring(0, MAX_PROMPT_LENGTH) + "\n... [truncated]";
@@ -198,7 +243,7 @@ public class DecisionEngine {
         return sb.toString();
     }
 
-    // ==================== 决策结果类 (非静态内部类，可直接 instanceof) ====================
+    // ==================== 决策结果类 ====================
 
     public static abstract class DecisionResult {
         @Override
