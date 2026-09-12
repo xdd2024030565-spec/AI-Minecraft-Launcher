@@ -11,7 +11,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.tungsten.fcl.FCLApplication;
 import com.tungsten.fcl.FCLRepository;
+import com.tungsten.fcl.auth.AccountManager;
 import com.tungsten.fcl.game.VersionManager;
+import com.tungsten.fcl.launch.GameLauncher;
 
 import java.util.List;
 
@@ -19,6 +21,7 @@ import java.util.List;
  * FCL 主 Activity — 游戏启动器界面
  *
  * 显示已安装的游戏版本列表，允许用户选择并启动游戏。
+ * 启动时通过 GameLauncher 构建 JVM 命令并注入 AI Bridge Mod。
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -30,10 +33,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         repository = FCLApplication.getInstance().getRepository();
         versionManager = VersionManager.getInstance(repository);
-
         setupUI();
         refreshVersionList();
     }
@@ -45,20 +46,17 @@ public class MainActivity extends AppCompatActivity {
         root.setPadding(64, 64, 64, 64);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        // 标题
         TextView title = new TextView(this);
         title.setText("Fold Craft Launcher");
         title.setTextSize(24);
         title.setPadding(0, 32, 0, 16);
         root.addView(title);
 
-        // 状态文本
         statusText = new TextView(this);
         statusText.setText("选择游戏版本");
         statusText.setPadding(0, 0, 0, 32);
         root.addView(statusText);
 
-        // 版本列表容器
         versionListContainer = new LinearLayout(this);
         versionListContainer.setOrientation(LinearLayout.VERTICAL);
         root.addView(versionListContainer);
@@ -69,7 +67,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void refreshVersionList() {
         versionListContainer.removeAllViews();
-
         List<String> versions = versionManager.getInstalledVersions();
         if (versions.isEmpty()) {
             TextView empty = new TextView(this);
@@ -78,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
             versionListContainer.addView(empty);
             return;
         }
-
         for (String versionId : versions) {
             TextView versionItem = new TextView(this);
             versionItem.setText("▶ " + versionId);
@@ -89,9 +85,27 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 启动游戏 — 通过 GameLauncher 构建 JVM 命令，自动注入 AI Bridge Mod
+     */
     private void launchGame(String versionId) {
         statusText.setText("正在启动 " + versionId + "...");
-        Toast.makeText(this, "启动 " + versionId, Toast.LENGTH_SHORT).show();
-        // TODO: 调用 GameLauncher 实际启动游戏
+        new Thread(() -> {
+            try {
+                GameLauncher launcher = new GameLauncher(repository);
+                AccountManager accountManager = AccountManager.getInstance();
+                AccountManager.Account account = accountManager.getCurrentAccount();
+                if (account == null) {
+                    account = accountManager.createOfflineAccount("Player");
+                }
+                launcher.launch(versionId, account);
+                runOnUiThread(() -> statusText.setText("游戏已启动: " + versionId));
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    statusText.setText("启动失败: " + e.getMessage());
+                    Toast.makeText(this, "启动失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
     }
 }
