@@ -5,8 +5,6 @@ import android.content.SharedPreferences
 
 /**
  * AI 配置管理
- *
- * 使用 SharedPreferences 存储 AI 控制器的配置。
  */
 object AiConfig {
     private const val PREFS_NAME = "ai_config"
@@ -16,6 +14,8 @@ object AiConfig {
     private const val KEY_BRIDGE_PORT = "bridge_port"
     private const val KEY_TASK = "task"
     private const val KEY_CYCLE_INTERVAL = "cycle_interval"
+    private const val KEY_VISUAL_MODE = "visual_mode"
+    private const val KEY_MEMORY_ENABLED = "memory_enabled"
 
     private fun getPrefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -44,4 +44,12 @@ object AiConfig {
         getPrefs(context).getLong(KEY_CYCLE_INTERVAL, 2000L)
     fun setCycleInterval(context: Context, interval: Long) =
         getPrefs(context).edit().putLong(KEY_CYCLE_INTERVAL, interval).apply()
+    fun getVisualMode(context: Context): Boolean =
+        getPrefs(context).getBoolean(KEY_VISUAL_MODE, false)
+    fun setVisualMode(context: Context, enabled: Boolean) =
+        getPrefs(context).edit().putBoolean(KEY_VISUAL_MODE, enabled).apply()
+    fun getMemoryEnabled(context: Context): Boolean =
+        getPrefs(context).getBoolean(KEY_MEMORY_ENABLED, false)
+    fun setMemoryEnabled(context: Context, enabled: Boolean) =
+        getPrefs(context).edit().putBoolean(KEY_MEMORY_ENABLED, enabled).apply()
 }

@@ -11,4 +11,20 @@
     <string name="notification_title">AI 控制器运行中</string>
     <string name="notification_text">正在控制 Minecraft 角色</string>
     <string name="title_fcl">Fold Craft Launcher</string>
+    <!-- Settings -->
+    <string name="settings">设置</string>
+    <string name="settings_title">AI 控制器设置</string>
+    <string name="settings_api_key">API Key</string>
+    <string name="settings_api_key_hint">输入 LLM API Key</string>
+    <string name="settings_model">模型名称</string>
+    <string name="settings_model_hint">gpt-4o-mini / claude-3-5-sonnet / deepseek-chat</string>
+    <string name="settings_base_url">API Base URL</string>
+    <string name="settings_bridge_port">AI Bridge 端口</string>
+    <string name="settings_task">AI 任务描述</string>
+    <string name="settings_cycle_interval">决策循环间隔 (毫秒)</string>
+    <string name="settings_visual_mode">视觉模式 (截图+多模态LLM)</string>
+    <string name="settings_memory">启用记忆系统</string>
+    <string name="settings_save">保存</string>
+    <string name="settings_cancel">取消</string>
+    <string name="settings_saved">设置已保存</string>
 </resources>

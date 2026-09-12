@@ -3,22 +3,20 @@ package com.aimc.launcher
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 /**
  * AI Minecraft Launcher 主 Activity
- *
- * 提供以下功能：
- * 1. 启动 Minecraft 游戏 (通过 FCL)
- * 2. 启动/停止 AI 控制器
- * 3. 查看游戏状态
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var btnStartMinecraft: Button
     private lateinit var btnStartAi: Button
     private lateinit var btnStopAi: Button
+    private lateinit var btnSettings: Button
+    private lateinit var tvAiStatus: TextView
     private var isAiRunning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,19 +25,11 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
 
-        // 启动 Minecraft 按钮
-        btnStartMinecraft.setOnClickListener {
-            startMinecraft()
-        }
-
-        // 启动 AI 按钮
-        btnStartAi.setOnClickListener {
-            startAiController()
-        }
-
-        // 停止 AI 按钮
-        btnStopAi.setOnClickListener {
-            stopAiController()
+        btnStartMinecraft.setOnClickListener { startMinecraft() }
+        btnStartAi.setOnClickListener { startAiController() }
+        btnStopAi.setOnClickListener { stopAiController() }
+        btnSettings.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
 
@@ -47,18 +37,17 @@ class MainActivity : AppCompatActivity() {
         btnStartMinecraft = findViewById(R.id.btn_start_minecraft)
         btnStartAi = findViewById(R.id.btn_start_ai)
         btnStopAi = findViewById(R.id.btn_stop_ai)
+        btnSettings = findViewById(R.id.btn_settings)
+        tvAiStatus = findViewById(R.id.tv_ai_status)
     }
 
     private fun startMinecraft() {
         Toast.makeText(this, "正在启动 Minecraft...", Toast.LENGTH_SHORT).show()
-
-        // 启动 FCL 的主 Activity
         try {
             val intent = Intent(this, Class.forName("com.tungsten.fcl.activity.MainActivity"))
             startActivity(intent)
         } catch (e: Exception) {
             Toast.makeText(this, "无法启动 Minecraft: ${e.message}", Toast.LENGTH_LONG).show()
-            e.printStackTrace()
         }
     }
 
@@ -69,6 +58,7 @@ class MainActivity : AppCompatActivity() {
         btnStartAi.isEnabled = false
         btnStopAi.isEnabled = true
         isAiRunning = true
+        tvAiStatus.text = getString(R.string.ai_status_running)
     }
 
     private fun stopAiController() {
@@ -78,12 +68,11 @@ class MainActivity : AppCompatActivity() {
         btnStartAi.isEnabled = true
         btnStopAi.isEnabled = false
         isAiRunning = false
+        tvAiStatus.text = getString(R.string.ai_status_stopped)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isAiRunning) {
-            stopAiController()
-        }
+        if (isAiRunning) stopAiController()
     }
 }

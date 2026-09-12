@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.aimc.launcher">
 
-    <!-- 权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -17,7 +16,6 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- AI Minecraft Launcher 主 Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -29,7 +27,12 @@
             </intent-filter>
         </activity>
 
-        <!-- FCL 主 Activity -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings"
+            android:parentActivityName=".MainActivity" />
+
         <activity
             android:name="com.tungsten.fcl.activity.MainActivity"
             android:exported="false"
@@ -37,7 +40,6 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="portrait" />
 
-        <!-- AI 控制器服务 -->
         <service
             android:name=".service.AiControllerService"
             android:enabled="true"

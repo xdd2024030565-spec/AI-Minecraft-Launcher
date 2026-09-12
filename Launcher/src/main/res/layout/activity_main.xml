@@ -12,7 +12,6 @@
         android:padding="24dp"
         android:gravity="center_horizontal">
 
-        <!-- 标题 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -32,7 +31,6 @@
             android:textColor="@color/on_background"
             android:alpha="0.6" />
 
-        <!-- 启动 Minecraft 按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_start_minecraft"
             android:layout_width="match_parent"
@@ -41,9 +39,8 @@
             android:text="@string/start_minecraft"
             android:textSize="16sp" />
 
-        <!-- 启动 AI 按钮 -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_start_ai"
+            android:id="+id/btn_start_ai"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginBottom="8dp"
@@ -51,7 +48,6 @@
             android:textSize="16sp"
             app:backgroundTint="@color/accent" />
 
-        <!-- 停止 AI 按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_stop_ai"
             android:layout_width="match_parent"
@@ -62,7 +58,6 @@
             android:enabled="false"
             app:backgroundTint="@color/error" />
 
-        <!-- AI 状态提示 -->
         <TextView
             android:id="@+id/tv_ai_status"
             android:layout_width="wrap_content"
@@ -71,6 +66,15 @@
             android:textSize="14sp"
             android:textColor="@color/on_background"
             android:alpha="0.7" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/settings"
+            android:textSize="14sp"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
 
     </LinearLayout>
 </ScrollView>
