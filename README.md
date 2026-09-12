@@ -14,11 +14,11 @@
 ### AI 接入功能
 - 🤖 **AI Bridge Mod** — Fabric Mod，在游戏内运行 HTTP API 服务器
 - 🌐 **HTTP API** — 暴露游戏状态查询和动作执行接口
-- 🧠 **AI Controller** — 连接 LLM (GPT-4o / Claude / DeepSeek)，实现 AI 决策循环
-- 📸 **视觉决策** — 截图 + 多模态 LLM (GPT-4o Vision)
-- 🧩 **记忆系统** — 短期记忆 (最近决策) + 长期记忆 (重要事实)
+- 🧠 **AI Controller** — 连接 LLM (GPT-4 / Claude / DeepSeek)，实现 AI 决策循环
+- 📸 **视觉能力** — 截图 + 多模态 LLM (GPT-4o Vision)
 - 🔄 **事件流** — 游戏事件实时推送
-- 🔧 **配置管理** — SharedPreferences 管理全部配置
+- 🧩 **记忆系统** — AI 记住过去的行为和观察，实现长期规划
+- 🔧 **配置管理** — 设置界面管理模型/密钥/任务/视觉/记忆
 
 ## 📁 项目结构
 
@@ -29,6 +29,7 @@ AI-Minecraft-Launcher/
 │       ├── com/aimc/launcher/
 │       │   ├── MainActivity.kt        # 启动器主界面
 │       │   ├── AiConfig.kt            # AI 配置管理
+│       │   ├── SettingsActivity.kt     # 设置界面
 │       │   ├── service/AiControllerService.kt  # AI 控制器服务
 │       │   └── mod/ModInjector.kt     # Mod 自动注入
 │       └── com/tungsten/fcl/
@@ -36,7 +37,7 @@ AI-Minecraft-Launcher/
 │           ├── FCLRepository.java      # 文件管理
 │           ├── activity/MainActivity.java  # 游戏启动界面
 │           ├── auth/AccountManager.java     # 账户管理
-│           ├── download/GameDownloader.java # 游戏下载
+│           ├── download/GameDownloader.java # 游戏下载器
 │           ├── game/
 │           │   ├── GameVersion.java    # 版本信息
 │           │   └── VersionManager.java # 版本管理
@@ -44,7 +45,7 @@ AI-Minecraft-Launcher/
 ├── AiBridgeMod/                # Fabric Mod (Java)
 │   └── src/main/java/com/aimc/ai_bridge/
 │       ├── AiBridgeMod.java        # Mod 入口
-│       ├── AiBridgeServer.java     # HTTP 服务器 (9端点)
+│       ├── AiBridgeServer.java     # HTTP 服务器
 │       ├── ActionExecutor.java     # 动作执行 (12种)
 │       ├── GameStateCollector.java # 状态收集
 │       ├── BlockScanner.java        # 方块扫描
@@ -54,10 +55,10 @@ AI-Minecraft-Launcher/
 │       └── RecipeLookup.java        # 配方查询
 ├── AiController/               # AI 控制器 (Android 库)
 │   └── src/main/java/com/aimc/controller/
-│       ├── DecisionEngine.java  # 决策循环 + 视觉 + 记忆
+│       ├── DecisionEngine.java  # 决策循环 (视觉+记忆)
 │       ├── GameApiClient.java   # 游戏 API 客户端
-│       ├── LlmClient.java       # LLM 客户端 (文本 + 多模态)
-│       └── MemorySystem.java    # AI 记忆系统
+│       ├── LlmClient.java       # LLM 客户端 (文本+多模态)
+│       └── MemoryStore.java     # 记忆系统
 ├── build.gradle.kts            # 根构建文件
 └── settings.gradle.kts         # 模块配置
 ```
@@ -98,13 +99,14 @@ AI-Minecraft-Launcher/
 
 - [x] **阶段 0**: 项目初始化 — Gradle 多模块、仓库结构
 - [x] **阶段 1**: 基础启动器 — FCL 核心框架
-- [x] **阶段 2**: AI Bridge Mod 开发 — 9个 Java 类, HTTP API 全端点
-- [x] **阶段 3**: 启动器 + Mod 集成 — Mod注入器 + AI服务 + 配置
-- [x] **阶段 4**: AI 控制器 — DecisionEngine + LLM客户端 + 前台服务
-- [~] **阶段 5**: 高级功能
-  - [x] 视觉决策 — 截图 + 多模态 LLM (GPT-4o Vision)
-  - [x] 记忆系统 — 短期记忆 (最近10次决策) + 长期记忆 (重要事实)
-  - [ ] 多 AI 协作 — 多角色 AI 同时控制
+- [x] **阶段 2**: AI Bridge Mod 开发 — HTTP API、动作执行、状态收集、方块扫描、背包检查、截图、事件收集、配方查询
+- [x] **阶段 3**: 启动器 + Mod 集成 — Mod 自动注入器、AI 控制器服务、配置管理
+- [x] **阶段 4**: AI 控制器 (LLM 决策循环) — DecisionEngine、GameApiClient、LlmClient、前台服务
+- [x] **阶段 5**: 高级功能
+  - [x] 视觉决策 (截图 + 多模态 LLM)
+  - [x] 记忆系统 (动作/状态存储 + 提示词集成)
+  - [x] 设置界面 (API Key / 模型 / 任务 / 视觉 / 记忆)
+  - [ ] 多 AI 协作
 
 ## 📄 许可证
 
