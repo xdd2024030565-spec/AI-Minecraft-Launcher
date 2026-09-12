@@ -1,37 +1,93 @@
 # Gradle
-.gradle/
+.gradle
 build/
-!gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
 
 # Android
 *.apk
-*.aab
-*.ap_)
+*.ap_
 *.dex
-local.properties
-captures/
-.cxx/
-
-# IntelliJ / Android Studio
-*.iml
-.idea/
-.gradle/
-.DS_Store
-
-# Minecraft Mod
-run/
 *.class
+*.aar
+*.jar
+*.so
+*.zip
+*.gz
+*.bz2
+*.dat
+*.bin
+*.log
+*.tmp
+*.temp
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.sublime-project
+*.sublime-workspace
 
 # OS
-Thumbs.db
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Keystore
+keystore/
+*.jks
+*.keystore
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Build outputs
+*.apk
+*.aab
+*.zip
+*.jar
+
+# Local configuration
+local.properties
+gradle.properties.local
 
 # Logs
 *.log
+logs/
+logcat/
 
-# Native
-*.so
-!jniLibs/**/*.so
+# Profiling
+*.prof
+*.trace
 
-# JRE
-jre/
+# Android Studio
+captures/
+.externalNativeBuild
+.cxx/
+
+# Kotlin
+*.kotlin
+*.kt.cache
+*.kt.backup
+
+# Java
+*.java.backup
+*.class.backup
+
+# Other
+*.patch
+*.diff
+*.orig
