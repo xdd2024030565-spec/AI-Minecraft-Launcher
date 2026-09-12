@@ -16,6 +16,7 @@ object AiConfig {
     private const val KEY_CYCLE_INTERVAL = "cycle_interval"
     private const val KEY_VISUAL_MODE = "visual_mode"
     private const val KEY_MEMORY_ENABLED = "memory_enabled"
+    private const val KEY_AGENT_MODE = "agent_mode"
 
     private fun getPrefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -52,4 +53,8 @@ object AiConfig {
         getPrefs(context).getBoolean(KEY_MEMORY_ENABLED, false)
     fun setMemoryEnabled(context: Context, enabled: Boolean) =
         getPrefs(context).edit().putBoolean(KEY_MEMORY_ENABLED, enabled).apply()
+    fun getAgentMode(context: Context): Boolean =
+        getPrefs(context).getBoolean(KEY_AGENT_MODE, false)
+    fun setAgentMode(context: Context, enabled: Boolean) =
+        getPrefs(context).edit().putBoolean(KEY_AGENT_MODE, enabled).apply()
 }
