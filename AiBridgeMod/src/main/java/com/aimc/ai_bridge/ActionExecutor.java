@@ -214,13 +214,33 @@ public class ActionExecutor {
     }
 
     /**
-     * 合成物品 (后续实现)
-     * 参数: item (String)
+     * 合成物品 — 查找配方并返回原料信息
+     * 参数: item (String) - 目标物品名称
+     *
+     * AI 获取配方后可使用 inventory_click 在合成台中放置原料。
+     * 合成台槽位: 2x2 格子为 slot 1-4, 3x3 格子为 slot 1-9, 结果为 slot 0。
      */
     private static ActionResult craft(Map<String, Object> params) {
         String item = (String) params.get("item");
-        // TODO: 使用 RecipeManager 查找并合成
-        return new ActionResult(false, "Crafting not yet implemented (requested: " + item + ")");
+        if (item == null || item.isEmpty()) {
+            return new ActionResult(false, "'item' is required");
+        }
+
+        RecipeLookup.RecipeInfoList recipes = RecipeLookup.findRecipes(item);
+        if (!recipes.connected) {
+            return new ActionResult(false, "Not connected to world");
+        }
+        if (recipes.recipes == null || recipes.recipes.isEmpty()) {
+            return new ActionResult(false, "No recipe found for: " + item);
+        }
+
+        RecipeLookup.RecipeInfo recipe = recipes.recipes.get(0);
+        return new ActionResult(true,
+            "Recipe: " + recipe.resultItem + " x" + recipe.resultCount +
+            " | Ingredients: " + String.join(", ", recipe.ingredients) +
+            " | Use inventory_click to place items in crafting grid " +
+            "(2x2: slots 1-4, 3x3: slots 1-9, result: slot 0)"
+        );
     }
 
     /**
