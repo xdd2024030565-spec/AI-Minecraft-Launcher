@@ -22,7 +22,7 @@ import kotlinx.coroutines.*
  * AI 控制器前台服务
  *
  * 在后台运行 AI 决策循环，持续与游戏内的 AI Bridge HTTP API 通信。
- * 配置通过 AiConfig (SharedPreferences) 读取。
+ * 支持视觉决策 (截图→多模态LLM) 和记忆系统。
  */
 class AiControllerService : Service() {
 
@@ -89,13 +89,13 @@ class AiControllerService : Service() {
     private fun startDecisionLoop() {
         serviceScope.launch(Dispatchers.IO) {
             try {
-                // 从 AiConfig 读取配置
                 val apiKey = AiConfig.getApiKey(this@AiControllerService)
                 val model = AiConfig.getModel(this@AiControllerService)
                 val baseUrl = AiConfig.getBaseUrl(this@AiControllerService)
                 val bridgePort = AiConfig.getBridgePort(this@AiControllerService)
                 val task = AiConfig.getTask(this@AiControllerService)
                 val cycleInterval = AiConfig.getCycleInterval(this@AiControllerService)
+                val useVision = AiConfig.getVisualMode(this@AiControllerService)
 
                 if (apiKey.isEmpty()) {
                     updateNotification("错误: 未配置 API Key，请在设置中填写")
@@ -107,12 +107,13 @@ class AiControllerService : Service() {
                 val llmClient = LlmClient(apiKey, model, baseUrl)
                 decisionEngine = DecisionEngine(gameApi, llmClient)
                 decisionEngine?.setCurrentTask(task)
+                decisionEngine?.setUseVision(useVision)
 
-                Log.i(TAG, "AI Controller initialized: port=$bridgePort, model=$model")
+                Log.i(TAG, "AI Controller initialized: port=$bridgePort, model=$model, vision=$useVision")
 
                 updateNotification("正在等待 AI Bridge 连接...")
                 waitForBridge(gameApi)
-                updateNotification("AI 控制器已启动，正在控制游戏...")
+                updateNotification(if (useVision) "AI 控制器已启动 (视觉模式)，正在控制游戏..." else "AI 控制器已启动，正在控制游戏...")
 
                 while (isActive && isRunning) {
                     try {
