@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
  * 游戏 API 客户端
  *
  * 封装对 AI Bridge Mod HTTP API 的所有请求。
+ * 支持: 游戏状态、背包、方块扫描、动作执行、聊天、截图、配方、事件。
  */
 public class GameApiClient {
 
@@ -61,6 +62,12 @@ public class GameApiClient {
 
         @POST("api/chat")
         Call<ActionResult> sendChat(@Body ChatRequest request);
+
+        @GET("api/recipe")
+        Call<RecipeListResponse> getRecipes(@Query("item") String item);
+
+        @GET("api/events")
+        Call<EventsResponse> getEvents();
     }
 
     // ==================== 响应数据类 ====================
@@ -141,6 +148,35 @@ public class GameApiClient {
         }
     }
 
+    // 新增: 配方相关数据类
+
+    public static class RecipeListResponse {
+        public boolean connected;
+        public List<RecipeInfo> recipes;
+        public int count;
+    }
+
+    public static class RecipeInfo {
+        public String id;
+        public String group;
+        public String resultItem;
+        public int resultCount;
+        public List<String> ingredients;
+    }
+
+    // 新增: 事件相关数据类
+
+    public static class EventsResponse {
+        public List<GameEvent> events;
+        public int count;
+    }
+
+    public static class GameEvent {
+        public String type;
+        public String message;
+        public long timestamp;
+    }
+
     // ==================== 同步方法 ====================
 
     public GameStateResponse getGameState() throws Exception {
@@ -169,6 +205,41 @@ public class GameApiClient {
 
     public ActionResult sendChat(String message) throws Exception {
         Response<ActionResult> resp = api.sendChat(new ChatRequest(message)).execute();
+        if (!resp.isSuccessful()) throw new Exception("HTTP " + resp.code());
+        return resp.body();
+    }
+
+    /**
+     * 获取游戏截图 (PNG 二进制数据)
+     * 使用 HttpURLConnection 直接下载二进制数据
+     */
+    public byte[] getScreenshot() throws Exception {
+        java.net.URL url = new java.net.URL("http://127.0.0.1:" + port + "/api/screenshot");
+        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(10000);
+        try (java.io.InputStream is = conn.getInputStream()) {
+            return is.readAllBytes();
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    /**
+     * 查询合成配方
+     * @param item 物品名称 (可为 null 返回全部)
+     */
+    public RecipeListResponse getRecipes(String item) throws Exception {
+        Response<RecipeListResponse> resp = api.getRecipes(item).execute();
+        if (!resp.isSuccessful()) throw new Exception("HTTP " + resp.code());
+        return resp.body();
+    }
+
+    /**
+     * 获取游戏事件队列
+     */
+    public EventsResponse getEvents() throws Exception {
+        Response<EventsResponse> resp = api.getEvents().execute();
         if (!resp.isSuccessful()) throw new Exception("HTTP " + resp.code());
         return resp.body();
     }
