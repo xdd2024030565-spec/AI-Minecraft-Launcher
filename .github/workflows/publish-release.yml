@@ -1,0 +1,194 @@
+name: Publish Release
+
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download APK artifacts
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // 创建目录
+          const dir = 'artifacts';
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir);
+          }
+          
+          // 下载APK文件
+          const runId = context.workflow_run.id;
+          const token = context.token;
+          
+          // 获取构建运行信息
+          const { data: workflowRun } = await github.rest.actions.getWorkflowRun({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: runId
+          });
+          
+          // 获取构建步骤
+          const { data: steps } = await github.rest.actions.listWorkflowRunSteps({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: runId
+          });
+          
+          // 查找上传步骤
+          const uploadStep = steps.find(step => 
+            step.name.includes('Upload') && step.status === 'completed'
+          );
+          
+          if (uploadStep) {
+            // 获取构建运行的artifacts
+            const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
+            
+            // 下载release APK
+            const releaseArtifact = artifacts.artifacts.find(artifact => 
+              artifact.name === 'release-apk'
+            );
+            
+            if (releaseArtifact) {
+              const downloadPath = path.join(dir, releaseArtifact.name + '.apk');
+              const { data: artifactData } = await github.rest.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: releaseArtifact.id,
+                archive_format: 'zip'
+              });
+              
+              fs.writeFileSync(downloadPath, Buffer.from(artifactData));
+              console.log(`Downloaded ${releaseArtifact.name} to ${downloadPath}`);
+            }
+            
+            // 下载debug APK
+            const debugArtifact = artifacts.artifacts.find(artifact => 
+              artifact.name === 'debug-apk'
+            );
+            
+            if (debugArtifact) {
+              const downloadPath = path.join(dir, debugArtifact.name + '.apk');
+              const { data: artifactData } = await github.rest.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: debugArtifact.id,
+                archive_format: 'zip'
+              });
+              
+              fs.writeFileSync(downloadPath, Buffer.from(artifactData));
+              console.log(`Downloaded ${debugArtifact.name} to ${downloadPath}`);
+            }
+          }
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v1.0.0
+        name: AI Minecraft Launcher v1.0.0
+        body: |
+          # AI Minecraft Launcher v1.0.0
+          
+          这是AI Minecraft Launcher的第一个正式版本，包含完整的AI控制功能！
+          
+          ## ✨ 核心功能
+          
+          ### 🎮 启动器功能
+          - 📦 下载和安装 Minecraft Java 版
+          - 🔐 微软账户登录认证 (离线模式可用)
+          - 🎮 支持 Fabric Mod 加载器
+          - 🖥️ LWJGL Android 适配 (触摸操控)
+          - ☕ 内置 ARM64 OpenJDK 运行时
+          
+          ### 🤖 AI 接入功能
+          - 🤖 **AI Bridge Mod** — Fabric Mod，在游戏内运行 HTTP API 服务器
+          - 🌐 **HTTP API** — 暴露游戏状态查询和动作执行接口
+          - 🧠 **AI Controller** — 连接 LLM (GPT-4 / Claude / DeepSeek)，实现 AI 决策循环
+          - 📸 **视觉能力** — 截图 + 多模态 LLM (GPT-4o Vision)
+          - 🔄 **事件流** — 游戏事件实时推送
+          - 🧩 **记忆系统** — AI 记住过去的行为和观察，实现长期规划
+          - 🔧 **配置管理** — 设置界面管理模型/密钥/任务/视觉/记忆
+          
+          ### 🎯 多智能体协作
+          - **5个预设智能体**: 探索者、收集者、建造者、矿工、农民
+          - **轮询调度**: 智能体轮流控制角色完成不同子任务
+          - **单玩家协作机制**: 智能体轮流控制角色完成不同子任务
+          
+          ## 🚀 使用说明
+          
+          1. **安装APK**: 下载并安装 AI-Minecraft-Launcher-v1.0.0.apk
+          2. **配置AI**: 在设置中输入API Key和模型选择
+          3. **启动Minecraft**: 点击启动按钮
+          4. **启动AI**: 点击AI控制器开始
+          
+          ## 📋 系统要求
+          
+          - **Android**: 8.0+ (API 26+)
+          - **内存**: 至少2GB RAM
+          - **存储**: 至少500MB可用空间
+          - **网络**: 需要连接互联网用于AI API调用
+          
+          ## 🔌 API接口
+          
+          游戏内 HTTP API (默认端口 25580):
+          
+          | 端点 | 方法 | 描述 |
+          |------|------|------|
+          | `/api/health` | GET | 健康检查 |
+          | `/api/state` | GET | 获取玩家状态 |
+          | `/api/action` | POST | 执行动作 |
+          | `/api/inventory` | GET | 获取背包内容 |
+          | `/api/blocks` | GET | 扫描附近方块 |
+          | `/api/screenshot` | GET | 获取游戏截图 |
+          | `/api/chat` | POST | 发送聊天消息 |
+          | `/api/recipe` | GET | 查询合成配方 |
+          | `/api/events` | GET | 获取游戏事件 |
+          
+          ## ⚠️ 重要提醒
+          
+          1. **API费用**: 使用AI会产生API调用费用，请合理使用
+          2. **隐私**: AI会分析游戏截图和状态，请确保符合当地隐私法规
+          3. **性能**: 视觉模式需要更多计算资源，建议在性能较好的设备上使用
+          4. **测试**: 这是第一个正式版本，建议在非重要游戏中测试
+          
+          ## 🆘 支持
+          
+          如遇到问题，请:
+          1. 检查设置配置是否正确
+          2. 确保网络连接正常
+          3. 查看日志输出
+          4. 提交Issue报告
+          
+          ---
+          
+          **版本**: 1.0.0  
+          **发布日期**: 2026-09-12  
+          **兼容性**: Android 8.0+  
+          **许可证**: GPL-3.0
+        files: artifacts/release-apk.apk
+        draft: false
+        prerelease: false
+        
+    - name: Upload Debug APK to Release
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/debug-apk.apk
+        asset_name: AI-Minecraft-Launcher-v1.0.0-debug.apk
+        asset_content_type: application/vnd.android.package-archive
