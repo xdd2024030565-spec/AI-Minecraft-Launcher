@@ -54,11 +54,14 @@ jobs:
         unzip -q "$RUNNER_TEMP/gradle-8.5-bin.zip" -d "$HOME"
         "$HOME/gradle-8.5/bin/gradle" --version
         echo "$HOME/gradle-8.5/bin" >> "$GITHUB_PATH"
-      
-    - name: Build Debug APK
+    
+    # 不使用 Gradle 缓存：缓存 key 基于 *.gradle 文件，不包含资源文件，
+    # 导致修改 colors.xml/styles.xml 后旧中间产物被恢复，AAPT 用到旧的 merged resources
+    
+    - name: Clean and Build Debug APK
       run: |
         set -o pipefail
-        gradle :Launcher:assembleDebug --stacktrace --no-daemon 2>&1 | tee build-debug.log
+        gradle :Launcher:clean :Launcher:assembleDebug --stacktrace --no-daemon 2>&1 | tee build-debug.log
       
     - name: Build Release APK
       run: |
