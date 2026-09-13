@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Widget.AI_Minecraft_Launcher.MaterialButton" parent="Widget.MaterialComponents.Button.TextButtonIcon">
+    <style name="Widget.AI_Minecraft_Launcher.MaterialButton" parent="Widget.MaterialComponents.Button.TextButton">
         <item name="iconTint">@color/ai_primary</item>
         <item name="android:textColor">@color/ai_primary</item>
     </style>
 
-    <style name="Widget.AI_Minecraft_Launcher.MaterialButton.Filled" parent="Widget.MaterialComponents.Button.FilledButton">
+    <style name="Widget.AI_Minecraft_Launcher.MaterialButton.Filled" parent="Widget.MaterialComponents.Button">
         <item name="backgroundTint">@color/ai_primary</item>
         <item name="android:textColor">@android:color/white</item>
     </style>
