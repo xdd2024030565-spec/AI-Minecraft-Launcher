@@ -13,70 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-      
+    # 直接按 run-id 下载刚构建完成的 artifacts（自动解压 zip，得到真正的 APK 文件）
     - name: Download APK artifacts
-      uses: actions/github-script@v7
+      uses: actions/download-artifact@v4
       with:
-        script: |
-          const fs = require('fs');
-          const path = require('path');
-          
-          // 创建目录
-          const dir = 'artifacts';
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir);
-          }
-          
-          // 下载APK文件
-          const runId = context.workflow_run.id;
-          
-          // 获取构建运行的artifacts
-          const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            run_id: runId
-          });
-          
-          // 下载release APK
-          const releaseArtifact = artifacts.artifacts.find(artifact => 
-            artifact.name === 'release-apk'
-          );
-          
-          if (releaseArtifact) {
-            const downloadPath = path.join(dir, releaseArtifact.name + '.apk');
-            const { data: artifactData } = await github.rest.actions.downloadArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: releaseArtifact.id,
-              archive_format: 'zip'
-            });
-            
-            fs.writeFileSync(downloadPath, Buffer.from(artifactData));
-            console.log(`Downloaded ${releaseArtifact.name} to ${downloadPath}`);
-          }
-          
-          // 下载debug APK
-          const debugArtifact = artifacts.artifacts.find(artifact => 
-            artifact.name === 'debug-apk'
-          );
-          
-          if (debugArtifact) {
-            const downloadPath = path.join(dir, debugArtifact.name + '.apk');
-            const { data: artifactData } = await github.rest.actions.downloadArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: debugArtifact.id,
-              archive_format: 'zip'
-            });
-            
-            fs.writeFileSync(downloadPath, Buffer.from(artifactData));
-            console.log(`Downloaded ${debugArtifact.name} to ${downloadPath}`);
-          }
+        run-id: ${{ github.event.workflow_run.id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path: artifacts
+        
+    - name: Show downloaded files
+      run: ls -lR artifacts
         
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v1.0.0
         name: AI Minecraft Launcher v1.0.0
@@ -159,14 +108,8 @@ jobs:
           **发布日期**: 2026-09-12  
           **兼容性**: Android 8.0+  
           **许可证**: GPL-3.0
-        files: artifacts/release-apk.apk
+        files: |
+          artifacts/release-apk/*.apk
+          artifacts/debug-apk/*.apk
         draft: false
         prerelease: false
-        
-    - name: Upload Debug APK to Release
-      uses: actions/upload-release-asset@v2
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/debug-apk.apk
-        asset_name: AI-Minecraft-Launcher-v1.0.0-debug.apk
-        asset_content_type: application/vnd.android.package-archive

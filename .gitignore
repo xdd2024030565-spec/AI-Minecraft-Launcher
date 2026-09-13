@@ -40,7 +40,7 @@ build/
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
+ethumbs.db
 Thumbs.db
 
 # Keystore
@@ -91,3 +91,6 @@ captures/
 *.patch
 *.diff
 *.orig
+
+# Gradle Wrapper JAR 必须保留（前面的 *.jar 规则会误伤它，例外规则必须放在文件末尾才生效）
+!gradle/wrapper/gradle-wrapper.jar

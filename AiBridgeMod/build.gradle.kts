@@ -1,5 +1,7 @@
 plugins {
-    id("fabric-loom")
+    // 注意：构建本模块需要 Gradle 9.5+ 与 JDK 21（fabric-loom 1.17.x 的要求）。
+    // 该模块默认不参与构建，仅在传入 -PbuildFabricMod=true 时被包含（详见 settings.gradle.kts）
+    id("fabric-loom") version "1.17.20"
 }
 
 dependencies {
