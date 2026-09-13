@@ -35,8 +35,6 @@ jobs:
         yes | sdkmanager --licenses > /dev/null || true
         sdkmanager "platforms;android-34" "build-tools;34.0.0"
       
-    # Release 构建的 signingConfig 指向 keystore/aimc-keystore.jks，
-    # 必须在 assembleRelease 之前生成，否则会报 "Keystore file not found"
     - name: Create release keystore
       run: |
         mkdir -p keystore
@@ -50,7 +48,6 @@ jobs:
           -keypass aimc123456 \
           -dname "CN=AI Minecraft Launcher, OU=Development, O=AIMC, L=Shanghai, ST=Shanghai, C=CN"
     
-    # 安装官方 Gradle 8.5 到用户目录（/opt 为 root 所有，不可写，必须避免写入 /opt）
     - name: Setup Gradle 8.5
       run: |
         curl -fsSL -o "$RUNNER_TEMP/gradle-8.5-bin.zip" "https://services.gradle.org/distributions/gradle-8.5-bin.zip"
@@ -58,27 +55,16 @@ jobs:
         "$HOME/gradle-8.5/bin/gradle" --version
         echo "$HOME/gradle-8.5/bin" >> "$GITHUB_PATH"
       
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: ${{ runner.os }}-gradle-
-        
     - name: Build Debug APK
       run: |
         set -o pipefail
-        gradle :Launcher:assembleDebug --stacktrace 2>&1 | tee build-debug.log
+        gradle :Launcher:assembleDebug --stacktrace --no-daemon 2>&1 | tee build-debug.log
       
     - name: Build Release APK
       run: |
         set -o pipefail
-        gradle :Launcher:assembleRelease --stacktrace 2>&1 | tee build-release.log
+        gradle :Launcher:assembleRelease --stacktrace --no-daemon 2>&1 | tee build-release.log
       
-    # signingConfig 生效时产出 Launcher-release.apk（已签名、已对齐），
-    # 兼容未启用签名配置时产出的 unsigned 文件名
     - name: Prepare release APK
       run: |
         set -e
@@ -103,7 +89,6 @@ jobs:
         name: release-apk
         path: AI-Minecraft-Launcher-v1.0.0.apk
 
-    # 失败时把构建日志尾部评论到 issue #1，方便快速定位问题
     - name: Report failure log to issue
       if: failure()
       uses: actions/github-script@v7
@@ -115,10 +100,31 @@ jobs:
             try { out += `\n===== ${f} =====\n` + fs.readFileSync(f, 'utf8'); } catch (e) {}
           }
           if (!out.trim()) out = '(no build log captured)';
-          const tail = out.split('\n').slice(-300).join('\n');
+          
+          // 提取关键错误段
+          const lines = out.split('\n');
+          let errorSection = '';
+          let inError = false;
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('What went wrong') || lines[i].includes('Execution failed for task')) {
+              inError = true;
+            }
+            if (inError) {
+              errorSection += lines[i] + '\n';
+              if (lines[i].includes('* Exception is:') || lines[i].includes('BUILD FAILED')) {
+                break;
+              }
+            }
+          }
+          if (!errorSection.trim()) {
+            errorSection = lines.slice(-500).join('\n');
+          }
+          const errorLines = lines.filter(l => l.includes('error:') || l.includes('ERROR') || l.includes('not found'));
+          const result = errorSection + '\n\n--- All error lines ---\n' + errorLines.join('\n');
+          
           await github.rest.issues.createComment({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: 1,
-            body: `**Build failed** (\`${context.sha.slice(0, 7)}\`)\n\n\`\`\`\n${tail.slice(0, 60000)}\n\`\`\``
+            body: `**Build failed** (\`${context.sha.slice(0, 7)}\`)\n\n\`\`\`\n${result.slice(0, 60000)}\n\`\`\``
           });
