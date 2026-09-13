@@ -7,11 +7,12 @@ android {
     namespace = "com.aimc.controller"
     compileSdk = 34
 
+    // 注意：库模块（com.android.library）的 defaultConfig 没有
+    // versionCode / versionName 属性（那是应用模块才有的），
+    // 库的版本信息来自项目版本（project.version），此处不再声明。
     defaultConfig {
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
     }
 
     compileOptions {
