@@ -40,7 +40,7 @@
             android:textSize="16sp" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="+id/btn_start_ai"
+            android:id="@+id/btn_start_ai"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginBottom="8dp"

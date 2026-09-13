@@ -20,6 +20,7 @@ object ModInjector {
      *
      * @return true 如果注入成功或已存在
      */
+    @JvmStatic
     fun injectAiBridge(repository: FCLRepository, versionId: String): Boolean {
         val modsDir = File(repository.getVersionDir(versionId), "mods")
         modsDir.mkdirs()
@@ -49,6 +50,7 @@ object ModInjector {
     /**
      * 检查 Mod 是否已注入
      */
+    @JvmStatic
     fun isModInjected(repository: FCLRepository, versionId: String): Boolean {
         val modFile = File(repository.getVersionDir(versionId), "mods/$AI_BRIDGE_JAR_NAME")
         return modFile.exists()
@@ -57,6 +59,7 @@ object ModInjector {
     /**
      * 移除已注入的 Mod
      */
+    @JvmStatic
     fun removeMod(repository: FCLRepository, versionId: String) {
         val modFile = File(repository.getVersionDir(versionId), "mods/$AI_BRIDGE_JAR_NAME")
         modFile.delete()

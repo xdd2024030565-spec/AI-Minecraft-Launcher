@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     
     steps:
     - name: Checkout code
@@ -65,10 +68,14 @@ jobs:
         restore-keys: ${{ runner.os }}-gradle-
         
     - name: Build Debug APK
-      run: gradle :Launcher:assembleDebug
+      run: |
+        set -o pipefail
+        gradle :Launcher:assembleDebug --stacktrace 2>&1 | tee build-debug.log
       
     - name: Build Release APK
-      run: gradle :Launcher:assembleRelease
+      run: |
+        set -o pipefail
+        gradle :Launcher:assembleRelease --stacktrace 2>&1 | tee build-release.log
       
     # signingConfig 生效时产出 Launcher-release.apk（已签名、已对齐），
     # 兼容未启用签名配置时产出的 unsigned 文件名
@@ -95,3 +102,23 @@ jobs:
       with:
         name: release-apk
         path: AI-Minecraft-Launcher-v1.0.0.apk
+
+    # 失败时把构建日志尾部评论到 issue #1，方便快速定位问题
+    - name: Report failure log to issue
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let out = '';
+          for (const f of ['build-debug.log', 'build-release.log']) {
+            try { out += `\n===== ${f} =====\n` + fs.readFileSync(f, 'utf8'); } catch (e) {}
+          }
+          if (!out.trim()) out = '(no build log captured)';
+          const tail = out.split('\n').slice(-300).join('\n');
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: 1,
+            body: `**Build failed** (\`${context.sha.slice(0, 7)}\`)\n\n\`\`\`\n${tail.slice(0, 60000)}\n\`\`\``
+          });

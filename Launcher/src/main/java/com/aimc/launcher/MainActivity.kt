@@ -6,6 +6,7 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.aimc.launcher.service.AiControllerService
 
 /**
  * AI Minecraft Launcher 主 Activity
