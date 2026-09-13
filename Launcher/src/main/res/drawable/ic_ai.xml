@@ -14,7 +14,7 @@
     <path
         android:strokeColor="#FFFFFF"
         android:strokeWidth="1.5"
-        android:fillColor="transparent"
+        android:fillColor="#00000000"
         android:pathData="M10,8 L12,6 L14,8 M12,6 L12,14 M10,14 L14,14"/>
     
     <!-- AI 光芒 -->

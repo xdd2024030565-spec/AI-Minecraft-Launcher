@@ -14,31 +14,23 @@
         android:fillColor="#388E3C"
         android:pathData="M4,10 L6,10 L6,14 L4,14 Z M18,10 L20,10 L20,14 L18,14 Z"/>
     
-    <!-- 左摇杆 -->
-    <circle
+    <!-- 左摇杆（矢量图不支持 circle 元素，改用 pathData 画圆） -->
+    <path
         android:fillColor="#FFFFFF"
-        android:cx="9"
-        android:cy="12"
-        android:r="1.5"/>
+        android:pathData="M9,12 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0"/>
     
     <!-- 右摇杆 -->
-    <circle
+    <path
         android:fillColor="#FFFFFF"
-        android:cx="15"
-        android:cy="12"
-        android:r="1.5"/>
+        android:pathData="M15,12 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0"/>
     
     <!-- A/B 按钮 -->
-    <circle
+    <path
         android:fillColor="#FFFFFF"
-        android:cx="16"
-        android:cy="10"
-        android:r="1"/>
+        android:pathData="M16,10 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0"/>
     
-    <circle
+    <path
         android:fillColor="#FFFFFF"
-        android:cx="16"
-        android:cy="14"
-        android:r="1"/>
+        android:pathData="M16,14 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0"/>
 
 </vector>
