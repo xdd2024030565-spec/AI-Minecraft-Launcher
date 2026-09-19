@@ -30,59 +30,48 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:label="@string/settings"
-            android:parentActivityName=".MainActivity" />
+        <activity android:name=".SettingsActivity" android:exported="false"
+            android:label="@string/settings" android:parentActivityName=".MainActivity" />
 
-        <activity
-            android:name="com.tungsten.fcl.activity.MainActivity"
-            android:exported="false"
-            android:label="Minecraft Launcher"
+        <activity android:name="com.tungsten.fcl.activity.MainActivity"
+            android:exported="false" android:label="Minecraft Launcher"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="portrait" />
 
-        <activity
-            android:name="com.tungsten.fcl.activity.DownloadActivity"
-            android:exported="false"
-            android:label="下载游戏版本"
+        <activity android:name="com.tungsten.fcl.activity.DownloadActivity"
+            android:exported="false" android:label="下载游戏版本"
             android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
 
-        <activity
-            android:name="com.tungsten.fcl.activity.ModSearchActivity"
-            android:exported="false"
-            android:label="Mod 搜索"
+        <activity android:name="com.tungsten.fcl.activity.ModSearchActivity"
+            android:exported="false" android:label="Mod 搜索"
             android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
 
-        <activity
-            android:name="com.tungsten.fcl.activity.GameDirectoryActivity"
-            android:exported="false"
-            android:label="游戏目录"
+        <activity android:name="com.tungsten.fcl.activity.ModVersionListActivity"
+            android:exported="false" android:label="选择版本"
+            android:parentActivityName="com.tungsten.fcl.activity.ModSearchActivity" />
+
+        <activity android:name="com.tungsten.fcl.activity.LocalModActivity"
+            android:exported="false" android:label="已安装 Mod"
             android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
 
-        <activity
-            android:name="com.tungsten.fcl.activity.AccountActivity"
-            android:exported="false"
-            android:label="账户管理"
+        <activity android:name="com.tungsten.fcl.activity.GameDirectoryActivity"
+            android:exported="false" android:label="游戏目录"
             android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
 
-        <activity
-            android:name="com.tungsten.fcl.activity.VersionSettingsActivity"
-            android:exported="false"
-            android:label="版本设置"
+        <activity android:name="com.tungsten.fcl.activity.AccountActivity"
+            android:exported="false" android:label="账户管理"
             android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
 
-        <activity
-            android:name="com.tungsten.fcl.activity.LauncherSettingsActivity"
-            android:exported="false"
-            android:label="启动器设置"
+        <activity android:name="com.tungsten.fcl.activity.VersionSettingsActivity"
+            android:exported="false" android:label="版本设置"
             android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
 
-        <service
-            android:name=".service.AiControllerService"
-            android:enabled="true"
-            android:exported="false"
+        <activity android:name="com.tungsten.fcl.activity.LauncherSettingsActivity"
+            android:exported="false" android:label="启动器设置"
+            android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
+
+        <service android:name=".service.AiControllerService"
+            android:enabled="true" android:exported="false"
             android:foregroundServiceType="dataSync" />
 
     </application>

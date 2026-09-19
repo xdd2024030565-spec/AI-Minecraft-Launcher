@@ -1,5 +1,6 @@
 package com.tungsten.fcl.activity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -31,9 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mod 搜索下载页面 — 仿 FCL DownloadPage / RemoteModDownloadPage
+ * Mod 搜索下载页面 — 对齐 FCL DownloadPage / RemoteModDownloadPage
  *
- * 从这里读取 LauncherSettings 的源偏好和 API Key。
+ * 新增: 加载器筛选 + 点击结果进入版本选择页
  */
 public class ModSearchActivity extends AppCompatActivity {
 
@@ -43,6 +44,7 @@ public class ModSearchActivity extends AppCompatActivity {
 
     private Spinner spinnerType;
     private Spinner spinnerSource;
+    private Spinner spinnerLoader;
     private EditText etSearch;
     private Button btnSearch;
     private ProgressBar progressBar;
@@ -65,7 +67,7 @@ public class ModSearchActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (modDownloadManager != null) modDownloadManager.refreshApiKey();
+        if (modDownloadManager != null) modDownloadManager.refreshApis();
     }
 
     private void setupUI() {
@@ -77,40 +79,51 @@ public class ModSearchActivity extends AppCompatActivity {
         TextView title = new TextView(this);
         title.setText("Mod / 整合包 搜索");
         title.setTextSize(22);
-        title.setPadding(0, 16, 0, 24);
+        title.setPadding(0, 16, 0, 8);
         root.addView(title);
 
-        // 类型
-        LinearLayout typeRow = new LinearLayout(this);
-        typeRow.setOrientation(LinearLayout.HORIZONTAL);
-        typeRow.setGravity(Gravity.CENTER_VERTICAL);
-        TextView typeLabel = new TextView(this);
-        typeLabel.setText("类型: ");
-        typeRow.addView(typeLabel);
+        // 类型 + 来源
+        LinearLayout row1 = new LinearLayout(this);
+        row1.setOrientation(LinearLayout.HORIZONTAL);
+        row1.setGravity(Gravity.CENTER_VERTICAL);
+
         spinnerType = new Spinner(this);
         ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
                 new String[]{"Mod", "整合包", "资源包", "光影包"});
         typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerType.setAdapter(typeAdapter);
-        typeRow.addView(spinnerType);
-        root.addView(typeRow);
+        row1.addView(spinnerType);
 
-        // 来源
-        LinearLayout sourceRow = new LinearLayout(this);
-        sourceRow.setOrientation(LinearLayout.HORIZONTAL);
-        sourceRow.setGravity(Gravity.CENTER_VERTICAL);
-        TextView sourceLabel = new TextView(this);
-        sourceLabel.setText("来源: ");
-        sourceRow.addView(sourceLabel);
         spinnerSource = new Spinner(this);
         ArrayAdapter<String> sourceAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
                 new String[]{"Modrinth", "CurseForge", "自动"});
         sourceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerSource.setAdapter(sourceAdapter);
-        sourceRow.addView(spinnerSource);
-        root.addView(sourceRow);
+        row1.addView(spinnerSource);
+
+        root.addView(row1);
+
+        // 加载器筛选
+        LinearLayout row2 = new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+        row2.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView loaderLabel = new TextView(this);
+        loaderLabel.setText("加载器: ");
+        loaderLabel.setTextSize(13);
+        row2.addView(loaderLabel);
+
+        spinnerLoader = new Spinner(this);
+        ArrayAdapter<String> loaderAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"不限", "fabric", "forge", "neoforge", "quilt"});
+        loaderAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerLoader.setAdapter(loaderAdapter);
+        row2.addView(spinnerLoader);
+
+        root.addView(row2);
 
         // 搜索框
         LinearLayout searchRow = new LinearLayout(this);
@@ -131,7 +144,7 @@ public class ModSearchActivity extends AppCompatActivity {
         root.addView(progressBar);
 
         tvStatus = new TextView(this);
-        tvStatus.setText("输入关键词并搜索");
+        tvStatus.setText("输入关键词并搜索，点击结果选择版本安装");
         tvStatus.setPadding(0, 16, 0, 16);
         root.addView(tvStatus);
 
@@ -159,13 +172,16 @@ public class ModSearchActivity extends AppCompatActivity {
         ModDownloadManager.ModSource source =
                 ModDownloadManager.ModSource.values()[spinnerSource.getSelectedItemPosition()];
 
+        int loaderPos = spinnerLoader.getSelectedItemPosition();
+        String loader = loaderPos == 0 ? null : (String) spinnerLoader.getSelectedItem();
+
         searchResults.clear();
         adapter.notifyDataSetChanged();
         progressBar.setVisibility(View.VISIBLE);
         tvStatus.setText("正在搜索...");
         btnSearch.setEnabled(false);
 
-        modDownloadManager.searchMods(type, "", query, 0, 20, source,
+        modDownloadManager.searchMods(type, "", null, loader, query, 0, 20, source,
                 new ModDownloadManager.SearchCallback() {
                     @Override
                     public void onResult(ModDownloadManager.UnifiedModResult result) {
@@ -197,7 +213,7 @@ public class ModSearchActivity extends AppCompatActivity {
                 });
     }
 
-    private static class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ViewHolder> {
+    private class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ViewHolder> {
         private final List<ModDownloadManager.UnifiedModResult> results;
 
         ResultAdapter(List<ModDownloadManager.UnifiedModResult> results) {
@@ -244,6 +260,14 @@ public class ModSearchActivity extends AppCompatActivity {
             title.setText(r.title);
             desc.setText(r.description);
             meta.setText(r.source.getDisplayName() + " | 下载量: " + r.downloadCount);
+
+            item.setOnClickListener(v -> {
+                Intent intent = new Intent(ModSearchActivity.this, ModVersionListActivity.class);
+                intent.putExtra(ModVersionListActivity.EXTRA_PROJECT_ID, r.id);
+                intent.putExtra(ModVersionListActivity.EXTRA_TITLE, r.title);
+                intent.putExtra(ModVersionListActivity.EXTRA_SOURCE, r.source.getDisplayName());
+                startActivity(intent);
+            });
         }
 
         @Override
