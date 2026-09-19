@@ -14,20 +14,16 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
-// Fabric Mod 配置
-processResources {
+// Fabric Mod 配置：展开 fabric.mod.json 中的 ${version}
+// 修复：改用显式 tasks.withType<ProcessResources>() 形式（不依赖 Kotlin DSL 访问器生成）
+//       且 expand() 参数必须为 Pair（其签名是 vararg Pair<String, Any>）
+tasks.withType<ProcessResources>().configureEach {
     inputs.property("version", project.version)
     filesMatching("fabric.mod.json") {
-        // 修复：Kotlin DSL 必须用 mapOf("key" to value)，原 expand("version": ...) 为非法语法
-        expand(mapOf("version" to project.version))
+        expand("version" to project.version)
     }
 }
 
-// Mod 输出 jar 名称
-base {
-    archivesName = "ai-bridge"
-}
-
-// 版本
+// 版本（独立构建时 jar 名 = 项目名 "ai-bridge" + 版本号）
 version = "1.0.0"
 group = "com.aimc"
