@@ -12,7 +12,6 @@ import com.tungsten.fcl.download.MojangDownloadProvider;
  * 启动器全局配置 — 仿 FCL GlobalConfig / Settings
  *
  * 集中管理下载源、API Key、镜像地址等可配置项。
- * 用户可在设置页面修改。
  */
 public class LauncherSettings {
 
@@ -21,12 +20,10 @@ public class LauncherSettings {
 
     private final SharedPreferences prefs;
 
-    // === 下载源选择 ===
-    public static final int SOURCE_AUTO = 0;      // 自动 (BMCLAPI 优先)
-    public static final int SOURCE_BMCLAPI = 1;   // BMCLAPI 镜像
-    public static final int SOURCE_MOJANG = 2;    // Mojang 官方
+    public static final int SOURCE_AUTO = 0;
+    public static final int SOURCE_BMCLAPI = 1;
+    public static final int SOURCE_MOJANG = 2;
 
-    // === Mod 源选择 ===
     public static final int MOD_SOURCE_MODRINTH = 0;
     public static final int MOD_SOURCE_CURSEFORGE = 1;
     public static final int MOD_SOURCE_AUTO = 2;
@@ -57,9 +54,6 @@ public class LauncherSettings {
         prefs.edit().putInt("download_source", source).apply();
     }
 
-    /**
-     * 获取当前配置下载源对应的 DownloadProvider
-     */
     public DownloadProvider getDownloadProvider() {
         switch (getDownloadSource()) {
             case SOURCE_BMCLAPI:
@@ -87,14 +81,17 @@ public class LauncherSettings {
         return key != null && !key.isEmpty();
     }
 
-    // === 自定义镜像地址 ===
+    // === Modrinth (无需 Key，仅镜像开关) ===
 
-    public String getBMCLAPIRoot() {
-        return prefs.getString("bmclapi_root", "https://bmclapi2.bangbang93.com");
+    /**
+     * 是否使用 Modrinth 镜像 (国内推荐开启)
+     */
+    public boolean isModrinthMirrorEnabled() {
+        return prefs.getBoolean("modrinth_mirror_enabled", true);
     }
 
-    public void setBMCLAPIRoot(String root) {
-        prefs.edit().putString("bmclapi_root", root).apply();
+    public void setModrinthMirrorEnabled(boolean enabled) {
+        prefs.edit().putBoolean("modrinth_mirror_enabled", enabled).apply();
     }
 
     public String getModrinthMirror() {
@@ -103,6 +100,16 @@ public class LauncherSettings {
 
     public void setModrinthMirror(String mirror) {
         prefs.edit().putString("modrinth_mirror", mirror).apply();
+    }
+
+    // === 镜像地址 ===
+
+    public String getBMCLAPIRoot() {
+        return prefs.getString("bmclapi_root", "https://bmclapi2.bangbang93.com");
+    }
+
+    public void setBMCLAPIRoot(String root) {
+        prefs.edit().putString("bmclapi_root", root).apply();
     }
 
     public String getCurseForgeMirror() {
@@ -133,7 +140,7 @@ public class LauncherSettings {
         prefs.edit().putInt("download_concurrency", Math.max(1, Math.min(32, concurrency))).apply();
     }
 
-    // === 自动校验文件完整性 ===
+    // === 完整性校验 ===
 
     public boolean isIntegrityCheck() {
         return prefs.getBoolean("integrity_check", true);
@@ -141,5 +148,15 @@ public class LauncherSettings {
 
     public void setIntegrityCheck(boolean check) {
         prefs.edit().putBoolean("integrity_check", check).apply();
+    }
+
+    // === 加载器类型 (用于 Modrinth/CF 筛选) ===
+
+    public String getModLoader() {
+        return prefs.getString("mod_loader", "fabric");
+    }
+
+    public void setModLoader(String loader) {
+        prefs.edit().putString("mod_loader", loader).apply();
     }
 }
