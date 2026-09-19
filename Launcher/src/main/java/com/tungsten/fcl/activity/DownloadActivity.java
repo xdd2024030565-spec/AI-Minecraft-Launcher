@@ -1,11 +1,10 @@
 package com.tungsten.fcl.activity;
 
-import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -26,18 +25,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.tungsten.fcl.FCLApplication;
 import com.tungsten.fcl.FCLRepository;
-import com.tungsten.fcl.download.AutoDownloadProvider;
-import com.tungsten.fcl.download.DownloadProvider;
 import com.tungsten.fcl.download.GameDownloader;
 import com.tungsten.fcl.game.VersionManager;
+import com.tungsten.fcl.setting.LauncherSettings;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 版本下载页面 — 仿 FCL VersionInstallPage / InstallerListPage
  *
- * 显示 Mojang 版本清单，支持选择并下载安装。
+ * 从 LauncherSettings 读取下载源。
  */
 public class DownloadActivity extends AppCompatActivity {
 
@@ -52,10 +51,12 @@ public class DownloadActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private Button btnRefresh;
     private Button btnDownload;
+    private VersionListAdapter adapter;
 
     private List<GameDownloader.RemoteVersionInfo> allVersions = new ArrayList<>();
-    private List<GameDownloader.RemoteVersionInfo> filteredVersions = new ArrayList<>();
+    private final List<GameDownloader.RemoteVersionInfo> filteredVersions = new ArrayList<>();
     private String selectedVersion = null;
+    private int selectedPos = 0;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -63,7 +64,8 @@ public class DownloadActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         repository = FCLApplication.getInstance().getRepository();
-        gameDownloader = new GameDownloader(repository);
+        LauncherSettings settings = LauncherSettings.getInstance(this);
+        gameDownloader = GameDownloader.create(repository, settings);
         versionManager = VersionManager.getInstance(repository);
         setupUI();
         loadVersions();
@@ -75,14 +77,12 @@ public class DownloadActivity extends AppCompatActivity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(48, 48, 48, 48);
 
-        // 标题
         TextView title = new TextView(this);
         title.setText("下载游戏版本");
         title.setTextSize(22);
         title.setPadding(0, 16, 0, 24);
         root.addView(title);
 
-        // 版本类型筛选
         LinearLayout filterRow = new LinearLayout(this);
         filterRow.setOrientation(LinearLayout.HORIZONTAL);
         filterRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -103,13 +103,11 @@ public class DownloadActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 filterVersions(position);
             }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
         filterRow.addView(spinnerVersionType);
         root.addView(filterRow);
 
-        // 进度区
         progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progressBar.setMax(100);
         progressBar.setLayoutParams(new LinearLayout.LayoutParams(
@@ -127,14 +125,14 @@ public class DownloadActivity extends AppCompatActivity {
         tvStatus.setPadding(0, 16, 0, 16);
         root.addView(tvStatus);
 
-        // 版本列表
         recyclerView = new RecyclerView(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        adapter = new VersionListAdapter(filteredVersions);
+        recyclerView.setAdapter(adapter);
         root.addView(recyclerView);
 
-        // 按钮
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setPadding(0, 16, 0, 0);
@@ -143,6 +141,13 @@ public class DownloadActivity extends AppCompatActivity {
         btnRefresh.setText("刷新列表");
         btnRefresh.setOnClickListener(v -> loadVersions());
         btnRow.addView(btnRefresh, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        Button btnSettings = new MaterialButton(this);
+        btnSettings.setText("下载源");
+        btnSettings.setOnClickListener(v ->
+                startActivity(new Intent(this, LauncherSettingsActivity.class)));
+        btnRow.addView(btnSettings, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         btnDownload = new MaterialButton(this);
@@ -159,7 +164,7 @@ public class DownloadActivity extends AppCompatActivity {
     }
 
     private void loadVersions() {
-        tvStatus.setText("正在从 Mojang 获取版本清单...");
+        tvStatus.setText("正在获取版本清单...");
         btnRefresh.setEnabled(false);
         btnDownload.setEnabled(false);
 
@@ -185,28 +190,26 @@ public class DownloadActivity extends AppCompatActivity {
         filteredVersions.clear();
         for (GameDownloader.RemoteVersionInfo v : allVersions) {
             switch (filterType) {
-                case 0: // 全部
-                    filteredVersions.add(v);
-                    break;
-                case 1: // 正式版
-                    if (v.isRelease()) filteredVersions.add(v);
-                    break;
-                case 2: // 快照版
-                    if (v.isSnapshot()) filteredVersions.add(v);
-                    break;
+                case 0: filteredVersions.add(v); break;
+                case 1: if (v.isRelease()) filteredVersions.add(v); break;
+                case 2: if (v.isSnapshot()) filteredVersions.add(v); break;
             }
         }
-        recyclerView.setAdapter(new VersionListAdapter(filteredVersions, versionManager));
+        selectedPos = 0;
+        adapter.notifyDataSetChanged();
         if (!filteredVersions.isEmpty()) {
             selectedVersion = filteredVersions.get(0).getId();
             btnDownload.setEnabled(true);
+        } else {
+            selectedVersion = null;
+            btnDownload.setEnabled(false);
         }
     }
 
     private void downloadSelectedVersion() {
         if (selectedVersion == null) return;
+        final String versionId = selectedVersion;
 
-        String versionId = selectedVersion;
         progressBar.setVisibility(View.VISIBLE);
         tvProgress.setVisibility(View.VISIBLE);
         btnDownload.setEnabled(false);
@@ -225,17 +228,16 @@ public class DownloadActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onComplete(String versionId) {
+                    public void onComplete(String id) {
                         mainHandler.post(() -> {
                             progressBar.setVisibility(View.GONE);
                             tvProgress.setVisibility(View.GONE);
-                            tvStatus.setText("下载完成: " + versionId);
+                            tvStatus.setText("下载完成: " + id);
                             btnDownload.setEnabled(true);
                             btnRefresh.setEnabled(true);
+                            adapter.notifyDataSetChanged();
                             Toast.makeText(DownloadActivity.this,
-                                    "安装成功: " + versionId, Toast.LENGTH_LONG).show();
-                            // 刷新列表显示已安装状态
-                            recyclerView.getAdapter().notifyDataSetChanged();
+                                    "安装成功: " + id, Toast.LENGTH_LONG).show();
                         });
                     }
 
@@ -259,23 +261,16 @@ public class DownloadActivity extends AppCompatActivity {
                     tvStatus.setText("下载失败: " + e.getMessage());
                     btnDownload.setEnabled(true);
                     btnRefresh.setEnabled(true);
-                    Toast.makeText(this, "下载失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         }).start();
     }
 
-    // === 版本列表适配器 ===
-
-    private static class VersionListAdapter extends RecyclerView.Adapter<VersionListAdapter.ViewHolder> {
-
+    private class VersionListAdapter extends RecyclerView.Adapter<VersionListAdapter.ViewHolder> {
         private final List<GameDownloader.RemoteVersionInfo> versions;
-        private final VersionManager versionManager;
-        private int selectedPos = 0;
 
-        VersionListAdapter(List<GameDownloader.RemoteVersionInfo> versions, VersionManager versionManager) {
+        VersionListAdapter(List<GameDownloader.RemoteVersionInfo> versions) {
             this.versions = versions;
-            this.versionManager = versionManager;
         }
 
         @NonNull
@@ -295,33 +290,27 @@ public class DownloadActivity extends AppCompatActivity {
             GameDownloader.RemoteVersionInfo v = versions.get(position);
             TextView tv = (TextView) holder.itemView;
 
-            String status = versionManager.isVersionInstalled(v.getId()) ? " ✓ 已安装" : "";
+            String status = versionManager.isVersionInstalled(v.getId()) ? "  ✓ 已安装" : "";
             String type = v.isRelease() ? "[正式版]" : (v.isSnapshot() ? "[快照]" : "[其他]");
             tv.setText(type + " " + v.getId() + status);
-
-            if (position == selectedPos) {
-                tv.setBackgroundColor(0x22000000);
-            } else {
-                tv.setBackgroundColor(0x00000000);
-            }
+            tv.setBackgroundColor(position == selectedPos ? 0x22000000 : 0x00000000);
 
             holder.itemView.setOnClickListener(v1 -> {
                 int oldPos = selectedPos;
                 selectedPos = holder.getBindingAdapterPosition();
+                if (selectedPos >= 0 && selectedPos < versions.size()) {
+                    selectedVersion = versions.get(selectedPos).getId();
+                }
                 notifyItemChanged(oldPos);
                 notifyItemChanged(selectedPos);
             });
         }
 
         @Override
-        public int getItemCount() {
-            return versions.size();
-        }
+        public int getItemCount() { return versions.size(); }
 
-        static class ViewHolder extends RecyclerView.ViewHolder {
-            ViewHolder(View itemView) {
-                super(itemView);
-            }
+        class ViewHolder extends RecyclerView.ViewHolder {
+            ViewHolder(View itemView) { super(itemView); }
         }
     }
 }
