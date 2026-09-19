@@ -1,0 +1,31 @@
+package com.tungsten.fclcore.game;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * 解压规则 — 直接取自 FCL ExtractRules
+ */
+public final class ExtractRules {
+
+    public static final ExtractRules EMPTY = new ExtractRules();
+
+    private final List<String> exclude;
+
+    public ExtractRules() {
+        this.exclude = Collections.emptyList();
+    }
+
+    public ExtractRules(List<String> exclude) {
+        this.exclude = new ArrayList<>(exclude);
+    }
+
+    public List<String> getExclude() {
+        return Collections.unmodifiableList(exclude);
+    }
+
+    public boolean shouldExtract(String path) {
+        return exclude.stream().noneMatch(path::startsWith);
+    }
+}
