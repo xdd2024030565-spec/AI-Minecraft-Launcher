@@ -6,11 +6,9 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -27,7 +25,7 @@ import com.google.android.material.button.MaterialButton;
 import com.tungsten.fcl.FCLApplication;
 import com.tungsten.fcl.FCLRepository;
 import com.tungsten.fcl.mod.ModDownloadManager;
-import com.tungsten.fcl.mod.ModrinthApi;
+import com.tungsten.fcl.setting.LauncherSettings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,12 +33,13 @@ import java.util.List;
 /**
  * Mod 搜索下载页面 — 仿 FCL DownloadPage / RemoteModDownloadPage
  *
- * 支持 Modrinth / CurseForge 搜索下载 Mod、整合包、光影包、资源包
+ * 从这里读取 LauncherSettings 的源偏好和 API Key。
  */
 public class ModSearchActivity extends AppCompatActivity {
 
     private FCLRepository repository;
     private ModDownloadManager modDownloadManager;
+    private LauncherSettings settings;
 
     private Spinner spinnerType;
     private Spinner spinnerSource;
@@ -49,16 +48,24 @@ public class ModSearchActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private TextView tvStatus;
     private RecyclerView recyclerView;
+    private ResultAdapter adapter;
 
-    private List<ModDownloadManager.UnifiedModResult> searchResults = new ArrayList<>();
+    private final List<ModDownloadManager.UnifiedModResult> searchResults = new ArrayList<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         repository = FCLApplication.getInstance().getRepository();
-        modDownloadManager = new ModDownloadManager(repository);
+        settings = LauncherSettings.getInstance(this);
+        modDownloadManager = new ModDownloadManager(repository, this);
         setupUI();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (modDownloadManager != null) modDownloadManager.refreshApiKey();
     }
 
     private void setupUI() {
@@ -67,22 +74,19 @@ public class ModSearchActivity extends AppCompatActivity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(48, 48, 48, 48);
 
-        // 标题
         TextView title = new TextView(this);
         title.setText("Mod / 整合包 搜索");
         title.setTextSize(22);
         title.setPadding(0, 16, 0, 24);
         root.addView(title);
 
-        // 类型选择
+        // 类型
         LinearLayout typeRow = new LinearLayout(this);
         typeRow.setOrientation(LinearLayout.HORIZONTAL);
         typeRow.setGravity(Gravity.CENTER_VERTICAL);
-
         TextView typeLabel = new TextView(this);
         typeLabel.setText("类型: ");
         typeRow.addView(typeLabel);
-
         spinnerType = new Spinner(this);
         ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
@@ -92,15 +96,13 @@ public class ModSearchActivity extends AppCompatActivity {
         typeRow.addView(spinnerType);
         root.addView(typeRow);
 
-        // 来源选择
+        // 来源
         LinearLayout sourceRow = new LinearLayout(this);
         sourceRow.setOrientation(LinearLayout.HORIZONTAL);
         sourceRow.setGravity(Gravity.CENTER_VERTICAL);
-
         TextView sourceLabel = new TextView(this);
         sourceLabel.setText("来源: ");
         sourceRow.addView(sourceLabel);
-
         spinnerSource = new Spinner(this);
         ArrayAdapter<String> sourceAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
@@ -113,36 +115,32 @@ public class ModSearchActivity extends AppCompatActivity {
         // 搜索框
         LinearLayout searchRow = new LinearLayout(this);
         searchRow.setOrientation(LinearLayout.HORIZONTAL);
-
         etSearch = new EditText(this);
         etSearch.setHint("搜索关键词...");
         etSearch.setLayoutParams(new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         searchRow.addView(etSearch);
-
         btnSearch = new MaterialButton(this);
         btnSearch.setText("搜索");
         btnSearch.setOnClickListener(v -> doSearch());
         searchRow.addView(btnSearch);
-
         root.addView(searchRow);
 
-        // 进度
         progressBar = new ProgressBar(this);
         progressBar.setVisibility(View.GONE);
         root.addView(progressBar);
 
-        // 状态
         tvStatus = new TextView(this);
         tvStatus.setText("输入关键词并搜索");
         tvStatus.setPadding(0, 16, 0, 16);
         root.addView(tvStatus);
 
-        // 结果列表
         recyclerView = new RecyclerView(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        adapter = new ResultAdapter(searchResults);
+        recyclerView.setAdapter(adapter);
         root.addView(recyclerView);
 
         scrollView.addView(root);
@@ -156,10 +154,13 @@ public class ModSearchActivity extends AppCompatActivity {
             return;
         }
 
-        ModDownloadManager.AddonType type = ModDownloadManager.AddonType.values()[spinnerType.getSelectedItemPosition()];
-        ModDownloadManager.ModSource source = ModDownloadManager.ModSource.values()[spinnerSource.getSelectedItemPosition()];
+        ModDownloadManager.AddonType type =
+                ModDownloadManager.AddonType.values()[spinnerType.getSelectedItemPosition()];
+        ModDownloadManager.ModSource source =
+                ModDownloadManager.ModSource.values()[spinnerSource.getSelectedItemPosition()];
 
         searchResults.clear();
+        adapter.notifyDataSetChanged();
         progressBar.setVisibility(View.VISIBLE);
         tvStatus.setText("正在搜索...");
         btnSearch.setEnabled(false);
@@ -170,9 +171,7 @@ public class ModSearchActivity extends AppCompatActivity {
                     public void onResult(ModDownloadManager.UnifiedModResult result) {
                         mainHandler.post(() -> {
                             searchResults.add(result);
-                            if (recyclerView.getAdapter() != null) {
-                                recyclerView.getAdapter().notifyItemInserted(searchResults.size() - 1);
-                            }
+                            adapter.notifyItemInserted(searchResults.size() - 1);
                         });
                     }
 
@@ -198,10 +197,7 @@ public class ModSearchActivity extends AppCompatActivity {
                 });
     }
 
-    // === 结果适配器 ===
-
     private static class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ViewHolder> {
-
         private final List<ModDownloadManager.UnifiedModResult> results;
 
         ResultAdapter(List<ModDownloadManager.UnifiedModResult> results) {
@@ -251,14 +247,10 @@ public class ModSearchActivity extends AppCompatActivity {
         }
 
         @Override
-        public int getItemCount() {
-            return results.size();
-        }
+        public int getItemCount() { return results.size(); }
 
         static class ViewHolder extends RecyclerView.ViewHolder {
-            ViewHolder(View itemView) {
-                super(itemView);
-            }
+            ViewHolder(View itemView) { super(itemView); }
         }
     }
 }

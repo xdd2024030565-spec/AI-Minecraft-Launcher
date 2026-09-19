@@ -73,6 +73,12 @@
             android:label="版本设置"
             android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
 
+        <activity
+            android:name="com.tungsten.fcl.activity.LauncherSettingsActivity"
+            android:exported="false"
+            android:label="启动器设置"
+            android:parentActivityName="com.tungsten.fcl.activity.MainActivity" />
+
         <service
             android:name=".service.AiControllerService"
             android:enabled="true"
