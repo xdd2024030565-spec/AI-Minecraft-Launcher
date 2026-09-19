@@ -3,31 +3,49 @@ package com.aimc.ai_bridge;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.server.MinecraftServer;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * AI Bridge HTTP API 服务器
  *
  * 在游戏内运行一个本地 HTTP 服务器，提供以下接口:
  *
- * GET  /api/state       — 获取玩家状态 (位置/生命/饥饿/经验)
- * POST /api/action      — 执行动作 (移动/挖矿/放置/攻击等)
- * GET  /api/inventory   — 获取背包内容
- * GET  /api/blocks      — 扫描附近方块和实体
- * GET  /api/screenshot  — 获取游戏截图 (PNG)
- * POST /api/chat        — 发送聊天消息
- * GET  /api/recipe      — 查询合成配方
- * GET  /api/events      — 获取游戏事件队列
- * GET  /api/health      — 健康检查
+ * 基础:
+ * GET  /api/health       — 健康检查
+ * GET  /api/state        — 获取玩家状态
+ * POST /api/action       — 执行动作
+ * GET  /api/inventory    — 获取背包
+ * GET  /api/blocks       — 扫描附近方块
+ * GET  /api/screenshot   — 截图 (PNG)
+ * POST /api/chat         — 发送聊天
+ * GET  /api/recipe       — 查询合成配方
+ * GET  /api/events       — 游戏事件队列
+ *
+ * AI 假人 (本地存档):
+ * POST /api/fakeplayer/spawn   — 生成假人 {name, x, y, z}
+ * POST /api/fakeplayer/remove  — 移除假人 {name}
+ * GET  /api/fakeplayer/list    — 假人列表
+ * GET  /api/fakeplayer/state   — 假人状态 ?name=
+ * POST /api/fakeplayer/action  — 控制假人 {name, action, ...}
+ *
+ * 对话:
+ * GET  /api/dialogue/poll      — 拉取新聊天消息
+ * POST /api/dialogue/reply     — AI 回复到聊天 {message}
  */
 public class AiBridgeServer {
 
@@ -70,19 +88,24 @@ public class AiBridgeServer {
         // 获取游戏事件
         server.createContext("/api/events", this::handleEvents);
 
-        // 设置 CORS 头
+        // ============ AI 假人 (本地存档) ============
+        server.createContext("/api/fakeplayer/spawn", this::handleFakePlayerSpawn);
+        server.createContext("/api/fakeplayer/remove", this::handleFakePlayerRemove);
+        server.createContext("/api/fakeplayer/list", this::handleFakePlayerList);
+        server.createContext("/api/fakeplayer/state", this::handleFakePlayerState);
+        server.createContext("/api/fakeplayer/action", this::handleFakePlayerAction);
+
+        // ============ 对话 ============
+        server.createContext("/api/dialogue/poll", this::handleDialoguePoll);
+        server.createContext("/api/dialogue/reply", this::handleDialogueReply);
+
+        // 根路径说明
         server.createContext("/", exchange -> {
-            String response = "AI Bridge API is running.\n" +
-                "Available endpoints:\n" +
-                "  GET  /api/health      - Health check\n" +
-                "  GET  /api/state       - Game state\n" +
-                "  POST /api/action      - Execute action\n" +
-                "  GET  /api/inventory    - Inventory\n" +
-                "  GET  /api/blocks       - Nearby blocks\n" +
-                "  GET  /api/screenshot    - Screenshot (PNG)\n" +
-                "  POST /api/chat         - Send chat\n" +
-                "  GET  /api/recipe        - Recipe lookup\n" +
-                "  GET  /api/events       - Game events\n";
+            String response = "AI Bridge API is running.\n"
+                + "Endpoints: /api/health /api/state /api/action /api/inventory /api/blocks\n"
+                + "           /api/screenshot /api/chat /api/recipe /api/events\n"
+                + "FakePlayer: /api/fakeplayer/spawn|remove|list|state|action\n"
+                + "Dialogue:   /api/dialogue/poll|reply\n";
             sendText(exchange, 200, response);
         });
 
@@ -96,13 +119,13 @@ public class AiBridgeServer {
         }
     }
 
-    // ==================== 处理器 ====================
+    // ==================== 基础处理器 ====================
 
     private void handleHealth(HttpExchange exchange) throws IOException {
         sendJson(exchange, Map.of(
             "status", "ok",
             "mod", "ai_bridge",
-            "version", "1.0.0",
+            "version", "1.1.0",
             "port", port,
             "minecraft", GameStateCollector.getMinecraftVersion()
         ));
@@ -210,7 +233,6 @@ public class AiBridgeServer {
 
     private void handleGetRecipe(HttpExchange exchange) throws IOException {
         try {
-            // 从查询参数获取物品名称
             String query = exchange.getRequestURI().getQuery();
             String item = null;
             if (query != null && query.contains("item=")) {
@@ -242,7 +264,181 @@ public class AiBridgeServer {
         }
     }
 
+    // ==================== AI 假人处理器 ====================
+
+    private void handleFakePlayerSpawn(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            sendError(exchange, 405, "Method not allowed. Use POST.");
+            return;
+        }
+        try {
+            String body = readBody(exchange);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> request = gson.fromJson(body, Map.class);
+
+            final String name = request.get("name") != null
+                    ? request.get("name").toString() : "AI-Bot";
+            final double x = toDouble(request.get("x"), 0.0);
+            final double y = toDouble(request.get("y"), 64.0);
+            final double z = toDouble(request.get("z"), 0.0);
+            final float yaw = (float) toDouble(request.get("yaw"), 0.0);
+            final float pitch = (float) toDouble(request.get("pitch"), 0.0);
+
+            Map<String, Object> result = onServer(() -> {
+                MinecraftServer srv = MinecraftClient.getInstance().getServer();
+                Map<String, Object> r = new HashMap<>();
+                if (srv == null) {
+                    r.put("success", false);
+                    r.put("message", "未进入世界（仅本地存档可用）");
+                    return r;
+                }
+                boolean ok = FakePlayerManager.spawn(srv, name, x, y, z, yaw, pitch) != null;
+                r.put("success", ok);
+                r.put("name", name);
+                return r;
+            }, 8000);
+
+            sendJson(exchange, result);
+        } catch (Exception e) {
+            sendError(exchange, 500, e.getMessage());
+        }
+    }
+
+    private void handleFakePlayerRemove(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            sendError(exchange, 405, "Method not allowed. Use POST.");
+            return;
+        }
+        try {
+            String body = readBody(exchange);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> request = gson.fromJson(body, Map.class);
+            final String name = request.get("name") != null
+                    ? request.get("name").toString() : "AI-Bot";
+
+            Map<String, Object> result = onServer(() -> {
+                MinecraftServer srv = MinecraftClient.getInstance().getServer();
+                Map<String, Object> r = new HashMap<>();
+                r.put("success", FakePlayerManager.remove(srv, name));
+                r.put("name", name);
+                return r;
+            }, 8000);
+
+            sendJson(exchange, result);
+        } catch (Exception e) {
+            sendError(exchange, 500, e.getMessage());
+        }
+    }
+
+    private void handleFakePlayerList(HttpExchange exchange) throws IOException {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            result.put("fakePlayers", FakePlayerManager.listNames());
+            result.put("count", FakePlayerManager.listNames().size());
+            sendJson(exchange, result);
+        } catch (Exception e) {
+            sendError(exchange, 500, e.getMessage());
+        }
+    }
+
+    private void handleFakePlayerState(HttpExchange exchange) throws IOException {
+        try {
+            String name = "AI-Bot";
+            String query = exchange.getRequestURI().getQuery();
+            if (query != null && query.contains("name=")) {
+                name = query.split("name=")[1].split("&")[0];
+            }
+            sendJson(exchange, FakePlayerManager.state(name));
+        } catch (Exception e) {
+            sendError(exchange, 500, e.getMessage());
+        }
+    }
+
+    private void handleFakePlayerAction(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            sendError(exchange, 405, "Method not allowed. Use POST.");
+            return;
+        }
+        try {
+            String body = readBody(exchange);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> request = gson.fromJson(body, Map.class);
+            final String name = request.get("name") != null
+                    ? request.get("name").toString() : "AI-Bot";
+
+            Map<String, Object> result = onServer(() ->
+                    FakePlayerManager.execute(name, request), 8000);
+            sendJson(exchange, result);
+        } catch (Exception e) {
+            sendError(exchange, 500, e.getMessage());
+        }
+    }
+
+    // ==================== 对话处理器 ====================
+
+    private void handleDialoguePoll(HttpExchange exchange) throws IOException {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            result.put("incoming", ChatDialogueCollector.pollIncoming());
+            result.put("outgoing", ChatDialogueCollector.pollOutgoing());
+            sendJson(exchange, result);
+        } catch (Exception e) {
+            sendError(exchange, 500, e.getMessage());
+        }
+    }
+
+    private void handleDialogueReply(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            sendError(exchange, 405, "Method not allowed. Use POST.");
+            return;
+        }
+        try {
+            String body = readBody(exchange);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> request = gson.fromJson(body, Map.class);
+            String message = request.get("message") == null ? "" : request.get("message").toString();
+
+            boolean ok = ChatDialogueCollector.reply(message);
+            sendJson(exchange, Map.of("success", ok));
+        } catch (Exception e) {
+            sendError(exchange, 500, e.getMessage());
+        }
+    }
+
     // ==================== 辅助方法 ====================
+
+    /**
+     * 在服务器主线程执行任务并等待结果（HTTP 线程 → 主线程调度）
+     */
+    private static <T> T onServer(Callable<T> task, long timeoutMs) throws Exception {
+        MinecraftServer server = MinecraftClient.getInstance().getServer();
+        if (server == null) {
+            throw new IllegalStateException("游戏未运行或未进入世界");
+        }
+        CompletableFuture<T> future = new CompletableFuture<>();
+        server.execute(() -> {
+            try {
+                future.complete(task.call());
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
+        });
+        return future.get(timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
+    private static double toDouble(Object value, double fallback) {
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Double.parseDouble((String) value);
+            } catch (Exception ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
+    }
 
     private void sendJson(HttpExchange exchange, Object data) throws IOException {
         String json = gson.toJson(data);

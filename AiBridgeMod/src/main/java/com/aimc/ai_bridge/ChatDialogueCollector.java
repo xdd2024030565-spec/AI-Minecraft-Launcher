@@ -2,11 +2,14 @@ package com.aimc.ai_bridge;
 
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
+import net.minecraft.client.MinecraftClient;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 对话收集器 —— AI 与玩家的聊天交流
@@ -77,12 +80,27 @@ public final class ChatDialogueCollector {
     }
 
     /**
-     * 发送 AI 回复到游戏聊天（通过 ActionExecutor 以玩家身份发送）
+     * 发送 AI 回复到游戏聊天（线程安全：调度到主线程执行）
      */
     public static boolean reply(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
         try {
-            ActionExecutor.sendChat(text);
-            return true;
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client == null) {
+                return false;
+            }
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
+            client.execute(() -> {
+                try {
+                    ActionExecutor.sendChat(text);
+                    future.complete(true);
+                } catch (Throwable t) {
+                    future.complete(false);
+                }
+            });
+            return Boolean.TRUE.equals(future.get(5000, TimeUnit.MILLISECONDS));
         } catch (Exception e) {
             AiBridgeMod.LOGGER.error("[AI Bridge] 对话回复失败", e);
             return false;
