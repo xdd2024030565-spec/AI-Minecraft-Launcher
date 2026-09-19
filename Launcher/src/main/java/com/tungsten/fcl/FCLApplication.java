@@ -13,14 +13,19 @@ public class FCLApplication extends Application {
 
     private static FCLApplication instance;
     private FCLRepository repository;
+    private com.tungsten.fcl.auth.AccountManager accountManager;
 
     @Override
     public void onCreate() {
         super.onCreate();
         instance = this;
 
-        // 初始化 Repository
+        // 初始化 Repository (游戏文件仓库)
         repository = FCLRepository.getInstance(this);
+
+        // 初始化 AccountManager (加载已保存的账户)
+        accountManager = com.tungsten.fcl.auth.AccountManager.getInstance();
+        accountManager.loadFromPreferences(this);
     }
 
     public static FCLApplication getInstance() {
@@ -29,6 +34,10 @@ public class FCLApplication extends Application {
 
     public FCLRepository getRepository() {
         return repository;
+    }
+
+    public com.tungsten.fcl.auth.AccountManager getAccountManager() {
+        return accountManager;
     }
 
     public static Context getAppContext() {

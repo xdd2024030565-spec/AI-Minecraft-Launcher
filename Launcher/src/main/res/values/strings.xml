@@ -27,4 +27,11 @@
     <string name="settings_save">保存</string>
     <string name="settings_cancel">取消</string>
     <string name="settings_saved">设置已保存</string>
+    <!-- FCL Activity Labels -->
+    <string name="fcl_download_version">下载版本</string>
+    <string name="fcl_mod_search">Mod 搜索</string>
+    <string name="fcl_game_directory">游戏目录</string>
+    <string name="fcl_account">账户</string>
+    <string name="fcl_version_settings">版本设置</string>
+    <string name="curse_api_key">null</string>
 </resources>
