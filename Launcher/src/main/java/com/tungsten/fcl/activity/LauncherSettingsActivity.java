@@ -2,9 +2,7 @@ package com.tungsten.fcl.activity;
 
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -24,12 +22,7 @@ import com.tungsten.fcl.setting.LauncherSettings;
 /**
  * 启动器全局设置页面 — 仿 FCL Settings
  *
- * 用户可在此配置:
- * - 下载源 (自动/BMCLAPI/Mojang)
- * - CurseForge API Key (用户自行填写)
- * - 镜像地址
- * - 下载并发数
- * - 完整性校验
+ * 配置: 下载源 / Mod源 / CurseForge API Key / Modrinth镜像 / 并发数等
  */
 public class LauncherSettingsActivity extends AppCompatActivity {
 
@@ -37,9 +30,11 @@ public class LauncherSettingsActivity extends AppCompatActivity {
 
     private Spinner spinnerDownloadSource;
     private Spinner spinnerModSource;
+    private Spinner spinnerLoader;
     private EditText etCurseForgeKey;
-    private EditText etBMCLAPIRoot;
+    private CheckBox cbModrinthMirror;
     private EditText etModrinthMirror;
+    private EditText etBMCLAPIRoot;
     private EditText etCurseForgeMirror;
     private SeekBar seekConcurrency;
     private TextView tvConcurrency;
@@ -66,12 +61,7 @@ public class LauncherSettingsActivity extends AppCompatActivity {
         root.addView(title);
 
         // === 下载源 ===
-        root.addView(sectionTitle("下载源"));
-
-        TextView tvDownloadLabel = new TextView(this);
-        tvDownloadLabel.setText("资源下载源");
-        tvDownloadLabel.setTextSize(14);
-        root.addView(tvDownloadLabel);
+        root.addView(sectionTitle("游戏资源下载源"));
 
         spinnerDownloadSource = new Spinner(this);
         ArrayAdapter<String> dsAdapter = new ArrayAdapter<>(this,
@@ -92,11 +82,44 @@ public class LauncherSettingsActivity extends AppCompatActivity {
         spinnerModSource.setAdapter(msAdapter);
         root.addView(spinnerModSource);
 
-        // === CurseForge API Key ===
-        root.addView(sectionTitle("CurseForge API Key"));
+        TextView tvLoaderLabel = new TextView(this);
+        tvLoaderLabel.setText("Mod 加载器 (搜索筛选用)");
+        tvLoaderLabel.setTextSize(13);
+        tvLoaderLabel.setPadding(0, 12, 0, 4);
+        root.addView(tvLoaderLabel);
+
+        spinnerLoader = new Spinner(this);
+        ArrayAdapter<String> loaderAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"fabric", "forge", "neoforge", "quilt", "vanilla"});
+        loaderAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerLoader.setAdapter(loaderAdapter);
+        root.addView(spinnerLoader);
+
+        // === Modrinth ===
+        root.addView(sectionTitle("Modrinth"));
+
+        TextView tvMrHint = new TextView(this);
+        tvMrHint.setText("Modrinth 无需 API Key，开箱即用。国内建议开启镜像。");
+        tvMrHint.setTextSize(12);
+        tvMrHint.setTextColor(0xFF888888);
+        tvMrHint.setPadding(0, 4, 0, 8);
+        root.addView(tvMrHint);
+
+        cbModrinthMirror = new CheckBox(this);
+        cbModrinthMirror.setText("使用 Modrinth 镜像 (推荐)");
+        root.addView(cbModrinthMirror);
+
+        etModrinthMirror = new EditText(this);
+        etModrinthMirror.setHint("https://mod.mcimirror.top/modrinth");
+        etModrinthMirror.setSingleLine(true);
+        root.addView(etModrinthMirror);
+
+        // === CurseForge ===
+        root.addView(sectionTitle("CurseForge"));
 
         TextView tvKeyHint = new TextView(this);
-        tvKeyHint.setText("从 https://console.curseforge.com/ 获取 API Key 后填入下方。");
+        tvKeyHint.setText("从 https://console.curseforge.com/ 获取 API Key 后填入。");
         tvKeyHint.setTextSize(12);
         tvKeyHint.setTextColor(0xFF888888);
         tvKeyHint.setPadding(0, 4, 0, 8);
@@ -107,40 +130,21 @@ public class LauncherSettingsActivity extends AppCompatActivity {
         etCurseForgeKey.setSingleLine(true);
         root.addView(etCurseForgeKey);
 
-        // === 镜像地址 ===
-        root.addView(sectionTitle("镜像地址 (高级)"));
+        etCurseForgeMirror = new EditText(this);
+        etCurseForgeMirror.setHint("https://mod.mcimirror.top/curseforge");
+        etCurseForgeMirror.setSingleLine(true);
+        LinearLayout.LayoutParams cfParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cfParams.topMargin = 8;
+        root.addView(etCurseForgeMirror, cfParams);
 
-        TextView tvBmclLabel = new TextView(this);
-        tvBmclLabel.setText("BMCLAPI 根地址");
-        tvBmclLabel.setTextSize(13);
-        root.addView(tvBmclLabel);
+        // === 其他镜像 ===
+        root.addView(sectionTitle("BMCLAPI 镜像"));
 
         etBMCLAPIRoot = new EditText(this);
         etBMCLAPIRoot.setHint("https://bmclapi2.bangbang93.com");
         etBMCLAPIRoot.setSingleLine(true);
         root.addView(etBMCLAPIRoot);
-
-        TextView tvMrLabel = new TextView(this);
-        tvMrLabel.setText("Modrinth 镜像");
-        tvMrLabel.setTextSize(13);
-        tvMrLabel.setPadding(0, 12, 0, 0);
-        root.addView(tvMrLabel);
-
-        etModrinthMirror = new EditText(this);
-        etModrinthMirror.setHint("https://mod.mcimirror.top/modrinth");
-        etModrinthMirror.setSingleLine(true);
-        root.addView(etModrinthMirror);
-
-        TextView tvCfLabel = new TextView(this);
-        tvCfLabel.setText("CurseForge 镜像");
-        tvCfLabel.setTextSize(13);
-        tvCfLabel.setPadding(0, 12, 0, 0);
-        root.addView(tvCfLabel);
-
-        etCurseForgeMirror = new EditText(this);
-        etCurseForgeMirror.setHint("https://mod.mcimirror.top/curseforge");
-        etCurseForgeMirror.setSingleLine(true);
-        root.addView(etCurseForgeMirror);
 
         // === 下载行为 ===
         root.addView(sectionTitle("下载行为"));
@@ -172,7 +176,6 @@ public class LauncherSettingsActivity extends AppCompatActivity {
         cbIntegrityCheck.setPadding(0, 16, 0, 0);
         root.addView(cbIntegrityCheck);
 
-        // === 保存 ===
         Button btnSave = new MaterialButton(this);
         btnSave.setText("保存设置");
         btnSave.setOnClickListener(v -> saveSettings());
@@ -197,10 +200,19 @@ public class LauncherSettingsActivity extends AppCompatActivity {
     private void loadSettings() {
         spinnerDownloadSource.setSelection(settings.getDownloadSource());
         spinnerModSource.setSelection(settings.getModSource());
-        etCurseForgeKey.setText(settings.getCurseForgeApiKey());
-        etBMCLAPIRoot.setText(settings.getBMCLAPIRoot());
+
+        String[] loaders = {"fabric", "forge", "neoforge", "quilt", "vanilla"};
+        String currentLoader = settings.getModLoader();
+        for (int i = 0; i < loaders.length; i++) {
+            if (loaders[i].equals(currentLoader)) { spinnerLoader.setSelection(i); break; }
+        }
+
+        cbModrinthMirror.setChecked(settings.isModrinthMirrorEnabled());
         etModrinthMirror.setText(settings.getModrinthMirror());
+        etCurseForgeKey.setText(settings.getCurseForgeApiKey());
         etCurseForgeMirror.setText(settings.getCurseForgeMirror());
+        etBMCLAPIRoot.setText(settings.getBMCLAPIRoot());
+
         int conc = settings.getDownloadConcurrency();
         seekConcurrency.setProgress(conc);
         tvConcurrency.setText(conc + " 线程");
@@ -210,10 +222,12 @@ public class LauncherSettingsActivity extends AppCompatActivity {
     private void saveSettings() {
         settings.setDownloadSource(spinnerDownloadSource.getSelectedItemPosition());
         settings.setModSource(spinnerModSource.getSelectedItemPosition());
-        settings.setCurseForgeApiKey(etCurseForgeKey.getText().toString());
-        settings.setBMCLAPIRoot(etBMCLAPIRoot.getText().toString().trim());
+        settings.setModLoader((String) spinnerLoader.getSelectedItem());
+        settings.setModrinthMirrorEnabled(cbModrinthMirror.isChecked());
         settings.setModrinthMirror(etModrinthMirror.getText().toString().trim());
+        settings.setCurseForgeApiKey(etCurseForgeKey.getText().toString());
         settings.setCurseForgeMirror(etCurseForgeMirror.getText().toString().trim());
+        settings.setBMCLAPIRoot(etBMCLAPIRoot.getText().toString().trim());
         settings.setDownloadConcurrency(Math.max(1, seekConcurrency.getProgress()));
         settings.setIntegrityCheck(cbIntegrityCheck.isChecked());
 
