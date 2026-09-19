@@ -1,21 +1,23 @@
 package com.tungsten.fcl.launch;
 
 /**
- * 启动选项
+ * 启动选项 (扩展版) — 仿 FCL VersionSetting
  *
- * 配置 Minecraft 启动时的各种参数，包括内存、分辨率、服务器等。
- * 支持 AI 模式配置。
+ * 配置 Minecraft 启动时的各种参数。
  */
 public class LaunchOptions {
 
-    private String javaPath = "/system/bin/java";
-    private int maxMemory = 4096;
+    private String javaPath = "java";
+    private int maxMemory = 2048;
     private int minMemory = 512;
     private int width = 854;
     private int height = 480;
     private boolean fullscreen = false;
     private String serverIp = "";
     private int serverPort = 25565;
+    private boolean isolateGameDir = true;
+    private String extraJavaArgs = "";
+    private String extraMinecraftArgs = "";
 
     // AI 模式配置
     private boolean aiModeEnabled = false;
@@ -49,6 +51,15 @@ public class LaunchOptions {
 
     public int getServerPort() { return serverPort; }
     public void setServerPort(int serverPort) { this.serverPort = serverPort; }
+
+    public boolean isIsolateGameDir() { return isolateGameDir; }
+    public void setIsolateGameDir(boolean isolateGameDir) { this.isolateGameDir = isolateGameDir; }
+
+    public String getExtraJavaArgs() { return extraJavaArgs; }
+    public void setExtraJavaArgs(String extraJavaArgs) { this.extraJavaArgs = extraJavaArgs; }
+
+    public String getExtraMinecraftArgs() { return extraMinecraftArgs; }
+    public void setExtraMinecraftArgs(String extraMinecraftArgs) { this.extraMinecraftArgs = extraMinecraftArgs; }
 
     public boolean isAiModeEnabled() { return aiModeEnabled; }
     public void setAiModeEnabled(boolean aiModeEnabled) { this.aiModeEnabled = aiModeEnabled; }

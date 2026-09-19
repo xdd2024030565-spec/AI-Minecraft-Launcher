@@ -10,10 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 游戏启动器
+ * 游戏启动器 (重写版) — 仿 FCL DefaultLauncher
  *
  * 负责构建 JVM 命令行参数并启动 Minecraft 进程。
- * 启动前自动注入 AI Bridge Mod。
+ * 支持从版本设置读取配置，自动注入 AI Bridge Mod。
  */
 public class GameLauncher {
 
@@ -28,13 +28,16 @@ public class GameLauncher {
     }
 
     /**
-     * 启动游戏
-     *
-     * @param versionId 要启动的版本 ID
-     * @param account   使用的账户 (可为 null，使用离线账户)
-     * @return 游戏进程
+     * 启动游戏 (使用默认设置)
      */
     public Process launch(String versionId, AccountManager.Account account) throws Exception {
+        return launch(versionId, account, new LaunchOptions());
+    }
+
+    /**
+     * 启动游戏 (使用自定义设置)
+     */
+    public Process launch(String versionId, AccountManager.Account account, LaunchOptions options) throws Exception {
         // 检查版本是否已安装
         if (!versionManager.isVersionInstalled(versionId)) {
             throw new RuntimeException("版本未安装: " + versionId);
@@ -44,29 +47,54 @@ public class GameLauncher {
         ModInjector.injectAiBridge(repository, versionId);
 
         // 构建命令行
-        List<String> command = buildCommand(versionId, account);
+        List<String> command = buildCommand(versionId, account, options);
 
         ProcessBuilder pb = new ProcessBuilder(command);
-        pb.directory(repository.getRootDir());
+        // 使用版本目录或根目录
+        File workingDir = options.isIsolateGameDir()
+                ? repository.getVersionDir(versionId)
+                : repository.getRootDir();
+        pb.directory(workingDir);
         pb.redirectErrorStream(true);
         return pb.start();
     }
 
     /**
-     * 构建 JVM 启动命令
+     * 构建 JVM 启动命令 — 仿 FCL DefaultLauncher.generateCommandLine
      */
-    private List<String> buildCommand(String versionId, AccountManager.Account account) {
+    private List<String> buildCommand(String versionId, AccountManager.Account account, LaunchOptions options) {
         List<String> cmd = new ArrayList<>();
 
-        // Java 可执行文件 (TODO: 使用内置 JRE)
-        cmd.add("java");
+        // Java 可执行文件
+        cmd.add(options.getJavaPath());
 
         // JVM 内存参数
-        cmd.add("-Xmx2G");
-        cmd.add("-Xms512M");
+        cmd.add("-Xmx" + options.getMaxMemory() + "m");
+        if (options.getMinMemory() > 0) {
+            cmd.add("-Xms" + options.getMinMemory() + "m");
+        }
 
-        // AI Bridge 端口配置 (可通过 
-        cmd.add("-Dai.bridge.port=" + DEFAULT_BRIDGE_PORT);
+        // 原生库路径
+        cmd.add("-Djava.library.path=" + repository.getLibrariesDir().getAbsolutePath());
+
+        // 启动器标识
+        cmd.add("-Dminecraft.launcher.brand=FCL");
+        cmd.add("-Dminecraft.launcher.version=1.0.0");
+
+        // AI Bridge 端口配置
+        if (options.isAiModeEnabled()) {
+            cmd.add("-Dai.bridge.enabled=true");
+            cmd.add("-Dai.bridge.port=" + options.getAiBridgePort());
+        } else {
+            cmd.add("-Dai.bridge.port=" + DEFAULT_BRIDGE_PORT);
+        }
+
+        // 额外 JVM 参数
+        if (options.getExtraJavaArgs() != null && !options.getExtraJavaArgs().isEmpty()) {
+            for (String arg : options.getExtraJavaArgs().split("\\s+")) {
+                if (!arg.isEmpty()) cmd.add(arg);
+            }
+        }
 
         // 类路径
         StringBuilder classpath = new StringBuilder();
@@ -100,10 +128,51 @@ public class GameLauncher {
         cmd.add(accessToken);
         cmd.add("--version");
         cmd.add(versionId);
+        cmd.add("--versionType");
+        cmd.add("FCL");
+
+        // 游戏目录
+        File gameDir = options.isIsolateGameDir()
+                ? repository.getVersionDir(versionId)
+                : repository.getRootDir();
         cmd.add("--gameDir");
-        cmd.add(repository.getRootDir().getAbsolutePath());
+        cmd.add(gameDir.getAbsolutePath());
+
+        // 资源目录
         cmd.add("--assetsDir");
-        cmd.add(new File(repository.getRootDir(), "assets").getAbsolutePath());
+        cmd.add(repository.getAssetsDir().getAbsolutePath());
+
+        // 分辨率
+        cmd.add("--width");
+        cmd.add(String.valueOf(options.getWidth()));
+        cmd.add("--height");
+        cmd.add(String.valueOf(options.getHeight()));
+
+        // 全屏
+        if (options.isFullscreen()) {
+            cmd.add("--fullscreen");
+        }
+
+        // 服务器连接
+        if (options.getServerIp() != null && !options.getServerIp().isEmpty()) {
+            String[] parts = options.getServerIp().split(":");
+            cmd.add("--server");
+            cmd.add(parts[0]);
+            if (parts.length > 1) {
+                cmd.add("--port");
+                cmd.add(parts[1]);
+            } else {
+                cmd.add("--port");
+                cmd.add("25565");
+            }
+        }
+
+        // 额外 Minecraft 参数
+        if (options.getExtraMinecraftArgs() != null && !options.getExtraMinecraftArgs().isEmpty()) {
+            for (String arg : options.getExtraMinecraftArgs().split("\\s+")) {
+                if (!arg.isEmpty()) cmd.add(arg);
+            }
+        }
 
         return cmd;
     }
@@ -116,6 +185,21 @@ public class GameLauncher {
         if (!libsDir.exists() || !libsDir.isDirectory()) {
             return new File[0];
         }
-        return libsDir.listFiles((dir, name) -> name.endsWith(".jar"));
+        // 递归收集所有 .jar 文件
+        List<File> jars = new ArrayList<>();
+        collectJars(libsDir, jars);
+        return jars.toArray(new File[0]);
+    }
+
+    private void collectJars(File dir, List<File> jars) {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            if (f.isFile() && f.getName().endsWith(".jar")) {
+                jars.add(f);
+            } else if (f.isDirectory()) {
+                collectJars(f, jars);
+            }
+        }
     }
 }
