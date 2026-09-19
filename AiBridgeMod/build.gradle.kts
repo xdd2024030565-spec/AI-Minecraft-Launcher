@@ -1,6 +1,5 @@
 plugins {
-    // 注意：构建本模块需要 Gradle 9.5+ 与 JDK 21（fabric-loom 1.17.x 的要求）。
-    // 该模块默认不参与构建，仅在传入 -PbuildFabricMod=true 时被包含（详见 settings.gradle.kts）
+    // 构建要求: JDK 21 + Gradle 9.7.1+ (fabric-loom 1.17.x)
     id("fabric-loom") version "1.17.20"
 }
 
@@ -19,7 +18,8 @@ dependencies {
 processResources {
     inputs.property("version", project.version)
     filesMatching("fabric.mod.json") {
-        expand("version": project.version)
+        // 修复：Kotlin DSL 必须用 mapOf("key" to value)，原 expand("version": ...) 为非法语法
+        expand(mapOf("version" to project.version))
     }
 }
 
