@@ -17,17 +17,12 @@ import java.util.List;
 /**
  * CurseForge API 客户端 — 仿 FCL CurseForgeRemoteModRepository
  *
- * CurseForge API: https://api.curseforge.com/v1
- * 需要 API Key (通过 X-API-KEY header)
- *
- * 支持搜索 mod / modpack / shader / resourcepack
+ * API Key 从 LauncherSettings 读取 (用户在设置页面填写)。
+ * 若未填写 Key，搜索将回退到镜像或提示不可用。
  */
 public class CurseForgeApi {
 
     private static final String API_BASE = "https://api.curseforge.com/v1";
-    private static final String API_KEY = "$2a$07$w8f1y2E3Y4R5T6Y7U8I9O0P1Q2R3S4T5U6V7W8X9Y0Z1a2b3c4d5e6f7g8h9i0j1k2l3";
-    // CurseForge 需要真实的 API Key，这里用占位值
-    // 实际使用时需要从 CurseForge 控制台获取
 
     public enum Section {
         MOD(6),
@@ -54,12 +49,27 @@ public class CurseForgeApi {
         public int getValue() { return value; }
     }
 
-    /**
-     * 搜索项目
-     */
+    private final String apiKey;
+
+    public CurseForgeApi(String apiKey) {
+        this.apiKey = apiKey == null ? "" : apiKey.trim();
+    }
+
+    public CurseForgeApi() {
+        this("");
+    }
+
+    public boolean isAvailable() {
+        return !apiKey.isEmpty();
+    }
+
     public List<ModSearchResult> search(Section section, String gameVersion,
                                        String searchFilter, int page, int pageSize,
                                        SortField sort) throws IOException {
+        if (apiKey.isEmpty()) {
+            throw new IOException("CurseForge API Key 未配置，请到“设置”页面填写");
+        }
+
         StringBuilder urlBuilder = new StringBuilder(API_BASE + "/mods/search?");
         urlBuilder.append("gameId=432");
         urlBuilder.append("&classId=").append(section.getClassId());
@@ -87,10 +97,10 @@ public class CurseForgeApi {
         return results;
     }
 
-    /**
-     * 获取 Mod 的版本列表
-     */
     public List<ModFile> getFiles(int modId) throws IOException {
+        if (apiKey.isEmpty()) {
+            throw new IOException("CurseForge API Key 未配置");
+        }
         String url = API_BASE + "/mods/" + modId + "/files?pageSize=50";
         String response = httpGet(url);
         JsonObject json = JsonParser.parseString(response).getAsJsonObject();
@@ -104,24 +114,26 @@ public class CurseForgeApi {
         return files;
     }
 
-    /**
-     * 下载 Mod 文件
-     */
     public void downloadFile(String downloadUrl, java.io.File destFile) throws IOException {
+        if (downloadUrl == null || downloadUrl.isEmpty()) {
+            throw new IOException("下载地址为空 (该文件可能禁用了第三方下载)");
+        }
         destFile.getParentFile().mkdirs();
         URL url = new URL(downloadUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setConnectTimeout(15000);
         conn.setReadTimeout(60000);
         conn.setInstanceFollowRedirects(true);
+        conn.setRequestProperty("User-Agent", "AI-Minecraft-Launcher/1.0");
+        if (!apiKey.isEmpty()) {
+            conn.setRequestProperty("X-API-KEY", apiKey);
+        }
         try (InputStream is = conn.getInputStream()) {
             Files.copy(is, destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } finally {
             conn.disconnect();
         }
     }
-
-    // === 数据解析 ===
 
     private ModSearchResult parseSearchResult(JsonObject obj) {
         ModSearchResult result = new ModSearchResult();
@@ -165,8 +177,6 @@ public class CurseForgeApi {
         return file;
     }
 
-    // === 工具方法 ===
-
     private String httpGet(String urlStr) throws IOException {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -174,8 +184,8 @@ public class CurseForgeApi {
         conn.setReadTimeout(30000);
         conn.setRequestProperty("User-Agent", "AI-Minecraft-Launcher/1.0");
         conn.setRequestProperty("Accept", "application/json");
-        if (!API_KEY.isEmpty() && !API_KEY.startsWith("$2a")) {
-            conn.setRequestProperty("X-API-KEY", API_KEY);
+        if (!apiKey.isEmpty()) {
+            conn.setRequestProperty("X-API-KEY", apiKey);
         }
         try (InputStream is = conn.getInputStream()) {
             return new String(is.readAllBytes(), "UTF-8");
@@ -197,8 +207,6 @@ public class CurseForgeApi {
     private int getInt(JsonObject obj, String key) {
         return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsInt() : 0;
     }
-
-    // === 数据类 ===
 
     public static class ModSearchResult {
         public int id;
