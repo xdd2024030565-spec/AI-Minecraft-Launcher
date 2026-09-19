@@ -7,9 +7,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.aimc.launcher.service.AiControllerService
+import com.tungsten.fcl.FCLApplication
+import com.tungsten.fcl.FCLRepository
 
 /**
- * AI Minecraft Launcher 主 Activity
+ * AI Minecraft Launcher 主 Activity (增强版)
+ *
+ * 作为应用入口，提供进入 FCL 启动器和 AI 控制器的入口。
  */
 class MainActivity : AppCompatActivity() {
 
@@ -17,7 +21,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStartAi: Button
     private lateinit var btnStopAi: Button
     private lateinit var btnSettings: Button
+    private lateinit var btnGameDirectory: Button
+    private lateinit var btnModSearch: Button
+    private lateinit var btnAccount: Button
     private lateinit var tvAiStatus: TextView
+    private lateinit var tvGameDir: TextView
     private var isAiRunning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,13 +33,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         initViews()
+        setupListeners()
+        updateGameDirInfo()
+    }
 
-        btnStartMinecraft.setOnClickListener { startMinecraft() }
-        btnStartAi.setOnClickListener { startAiController() }
-        btnStopAi.setOnClickListener { stopAiController() }
-        btnSettings.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
+    override fun onResume() {
+        super.onResume()
+        updateGameDirInfo()
     }
 
     private fun initViews() {
@@ -39,16 +47,76 @@ class MainActivity : AppCompatActivity() {
         btnStartAi = findViewById(R.id.btn_start_ai)
         btnStopAi = findViewById(R.id.btn_stop_ai)
         btnSettings = findViewById(R.id.btn_settings)
+        btnGameDirectory = findViewById(R.id.btn_game_directory)
+        btnModSearch = findViewById(R.id.btn_mod_search)
+        btnAccount = findViewById(R.id.btn_account)
         tvAiStatus = findViewById(R.id.tv_ai_status)
+        tvGameDir = findViewById(R.id.tv_game_dir)
     }
 
-    private fun startMinecraft() {
-        Toast.makeText(this, "正在启动 Minecraft...", Toast.LENGTH_SHORT).show()
+    private fun setupListeners() {
+        // 进入 FCL 启动器主界面
+        btnStartMinecraft.setOnClickListener {
+            try {
+                val intent = Intent(this, Class.forName("com.tungsten.fcl.activity.MainActivity"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "无法启动: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        // AI 控制器
+        btnStartAi.setOnClickListener { startAiController() }
+        btnStopAi.setOnClickListener { stopAiController() }
+
+        // 设置
+        btnSettings.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        // 游戏目录
+        btnGameDirectory.setOnClickListener {
+            try {
+                val intent = Intent(this, Class.forName("com.tungsten.fcl.activity.GameDirectoryActivity"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "无法打开: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Mod 搜索
+        btnModSearch.setOnClickListener {
+            try {
+                val intent = Intent(this, Class.forName("com.tungsten.fcl.activity.ModSearchActivity"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "无法打开: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 账户管理
+        btnAccount.setOnClickListener {
+            try {
+                val intent = Intent(this, Class.forName("com.tungsten.fcl.activity.AccountActivity"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "无法打开: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun updateGameDirInfo() {
         try {
-            val intent = Intent(this, Class.forName("com.tungsten.fcl.activity.MainActivity"))
-            startActivity(intent)
+            val repo: FCLRepository = FCLApplication.getInstance().repository
+            val versionsDir = repo.versionsDir
+            val versionCount = if (versionsDir.exists() && versionsDir.isDirectory) {
+                versionsDir.listFiles { f -> f.isDirectory }?.size ?: 0
+            } else {
+                0
+            }
+            tvGameDir.text = "游戏目录: ${repo.gameDirectoryPath}\n已安装版本: $versionCount"
         } catch (e: Exception) {
-            Toast.makeText(this, "无法启动 Minecraft: ${e.message}", Toast.LENGTH_LONG).show()
+            tvGameDir.text = "游戏目录: 未初始化"
         }
     }
 
