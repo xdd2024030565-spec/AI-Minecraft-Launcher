@@ -21,6 +21,7 @@ import com.tungsten.fcl.FCLRepository;
 import com.tungsten.fcl.auth.AccountManager;
 import com.tungsten.fcl.game.VersionManager;
 import com.tungsten.fcl.launch.GameLauncher;
+import com.tungsten.fcl.mod.LocalModManager;
 
 import java.io.File;
 import java.util.List;
@@ -28,7 +29,7 @@ import java.util.List;
 /**
  * FCL 主 Activity — 游戏启动器界面
  *
- * 显示已安装的游戏版本，提供下载/Mod/目录/账户/设置入口。
+ * 入口: 下载版本 / Mod搜索 / 本地Mod / 游戏目录 / 账户 / 设置
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -85,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         Button btnModSearch = new MaterialButton(this);
-        btnModSearch.setText("📦 Mod");
+        btnModSearch.setText("📦 搜索 Mod");
         btnModSearch.setOnClickListener(v ->
                 startActivity(new Intent(this, ModSearchActivity.class)));
         btnRow.addView(btnModSearch, new LinearLayout.LayoutParams(
@@ -93,9 +94,24 @@ public class MainActivity extends AppCompatActivity {
 
         root.addView(btnRow);
 
-        // 第二行: 游戏目录 / 账户
+        // 第二行: 本地Mod / 游戏目录
         LinearLayout btnRow2 = new LinearLayout(this);
         btnRow2.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button btnLocalMod = new MaterialButton(this);
+        btnLocalMod.setText("🧩 已装 Mod");
+        btnLocalMod.setOnClickListener(v -> {
+            List<String> installed = versionManager.getInstalledVersions();
+            if (installed.isEmpty()) {
+                Toast.makeText(this, "请先安装游戏版本", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Intent intent = new Intent(this, LocalModActivity.class);
+            intent.putExtra(LocalModActivity.EXTRA_VERSION_ID, installed.get(0));
+            startActivity(intent);
+        });
+        btnRow2.addView(btnLocalMod, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         Button btnDir = new MaterialButton(this);
         btnDir.setText("📁 游戏目录");
@@ -104,23 +120,27 @@ public class MainActivity extends AppCompatActivity {
         btnRow2.addView(btnDir, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
+        root.addView(btnRow2);
+
+        // 第三行: 账户 / 设置
+        LinearLayout btnRow3 = new LinearLayout(this);
+        btnRow3.setOrientation(LinearLayout.HORIZONTAL);
+
         Button btnAccount = new MaterialButton(this);
         btnAccount.setText("👤 账户");
         btnAccount.setOnClickListener(v ->
                 startActivity(new Intent(this, AccountActivity.class)));
-        btnRow2.addView(btnAccount, new LinearLayout.LayoutParams(
+        btnRow3.addView(btnAccount, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        root.addView(btnRow2);
-
-        // 第三行: 设置
         Button btnSettings = new MaterialButton(this);
-        btnSettings.setText("⚙ 启动器设置 (下载源 / API Key)");
+        btnSettings.setText("⚙ 设置");
         btnSettings.setOnClickListener(v ->
                 startActivity(new Intent(this, LauncherSettingsActivity.class)));
-        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        root.addView(btnSettings, settingsParams);
+        btnRow3.addView(btnSettings, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        root.addView(btnRow3);
 
         statusText = new TextView(this);
         statusText.setText("选择游戏版本");
@@ -167,12 +187,11 @@ public class MainActivity extends AppCompatActivity {
             item.addView(versionName);
 
             File jarFile = versionManager.getVersionJar(versionId);
-            File modsDir = versionManager.getVersionModsDir(versionId);
-            int modCount = (modsDir.exists() && modsDir.isDirectory()) ?
-                    modsDir.listFiles((d, n) -> n.endsWith(".jar") || n.endsWith(".disabled")).length : 0;
+            LocalModManager lmm = new LocalModManager(versionManager.getVersionModsDir(versionId));
+            LocalModManager.ModStats stats = lmm.getStats();
 
-            String info = (jarFile.exists() ? "✓ 完整" : "⚠ 不完整") +
-                    (modCount > 0 ? "  |  Mod: " + modCount : "");
+            String info = (jarFile.exists() ? "✓ 完整" : "⚠ 不完整")
+                    + (stats.total > 0 ? "  |  Mod: " + stats.enabled + "/" + stats.total : "");
 
             TextView versionInfo = new TextView(this);
             versionInfo.setText(info);
@@ -197,19 +216,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showVersionOptions(String versionId) {
-        String[] options = {"启动游戏", "版本设置", "删除版本"};
+        String[] options = {"启动游戏", "管理 Mod", "版本设置", "删除版本"};
         new android.app.AlertDialog.Builder(this)
                 .setTitle(versionId)
                 .setItems(options, (dialog, which) -> {
                     switch (which) {
                         case 0: launchGame(versionId); break;
                         case 1: {
+                            Intent intent = new Intent(this, LocalModActivity.class);
+                            intent.putExtra(LocalModActivity.EXTRA_VERSION_ID, versionId);
+                            startActivity(intent);
+                            break;
+                        }
+                        case 2: {
                             Intent intent = new Intent(this, VersionSettingsActivity.class);
                             intent.putExtra("version_id", versionId);
                             startActivity(intent);
                             break;
                         }
-                        case 2: confirmDelete(versionId); break;
+                        case 3: confirmDelete(versionId); break;
                     }
                 })
                 .show();
